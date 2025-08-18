@@ -34,9 +34,11 @@ transition:transform .12s ease;will-change:transform;
 .small{font-size:12px;opacity:.8}
 .sizes{display:flex;gap:6px;flex-wrap:wrap}
 .sizes button.active{background:#1aa37a}
-  @media (max-width: 520px){
-  #clearCurrent{ order: 98; width: 100%; }
-  .stats{ order: 99; width: 100%; justify-content:flex-start; }
+
+/* 手機上保證看得到清除鍵與統計列 */
+@media (max-width: 520px){
+#clearCurrent{ order: 98; width: 100%; }
+.stats{ order: 99; width: 100%; justify-content:flex-start; }
 }
 </style>
 </head>
@@ -67,13 +69,14 @@ transition:transform .12s ease;will-change:transform;
 <button id="reset">還原</button>
 <button id="toggleVibrate">震動：開</button>
 <button id="clearCurrent" onclick="clearCurrentRecord()">清除當前紀錄</button>
+
 <div class="stats">
 <span>步數：<strong id="moves">0</strong></span>
 <span>時間：<strong id="time">00:00.0</strong></span>
 <span>|</span>
 <span>歷史最佳步數：<strong id="bestMoves">—</strong></span>
 <span>歷史最佳時間：<strong id="bestTime">—</strong></span>
- <span id="recordFlag" class="small"></span>
+<span id="recordFlag" class="small"></span>
 </div>
 </div>
 
@@ -98,73 +101,34 @@ loggerhead: { img: 'loggerhead.jpg', title: '赤蠵龜（Caretta caretta）', de
 };
 
 /* ====== 狀態變數 ====== */
-let N = 3; // 尺寸：2 / 3 / 4
-let total = N * N;
-let emptyGoal = total - 1;
+let N = 3, total = N*N, emptyGoal = total-1;
 let currentTurtle = 'leatherback';
-// 紀錄這一局是否是「合法新局」
-let run = {
-  startedFromShuffle: false, // 只有按「重新洗牌」才會變成 true
-  usedRestore: false,        // 只要按過「還原」就會變成 true
-  seed: 0
-};
+let tiles = [];
+let moves = 0, timer = null, startTime = null, elapsedMs = 0;
 
-// 用來確認打亂後的盤面（可留著以後要做更嚴格驗證）
-function tilesHash(arr){
-  return btoa(arr.map(v => v===emptyGoal ? 'E' : v).join(','));
-}
+// 記錄是否為「合法新局」
+const run = { startedFromShuffle:false, usedRestore:false, seed:0 };
+
+// DOM
 const board = document.getElementById('board');
-const gridlines= document.getElementById('gridlines');
+const gridlines = document.getElementById('gridlines');
 const movesEl = document.getElementById('moves');
 const timeEl = document.getElementById('time');
 const winEl = document.getElementById('win');
 const selectEl = document.getElementById('turtleSelect');
 const winSound = document.getElementById('winSound');
-const toggleBtn= document.getElementById('toggleVibrate');
-
-let vibrateOn = localStorage.getItem('turtle_vibrate') !== 'off'; // ✅ 先宣告
-let tiles = [];
-let moves = 0, timer = null, startTime = null, elapsedMs = 0;
-let isNewGame = true;
-
-
-
-  // …其餘程式（事件綁定、shuffle、draw 等）…
-})();
-function reset() {
-  // 重開一局
-  isNewGame = true;
-  moves = 0;
-  // 重新打亂拼圖...
-  draw();
-}
+const toggleBtn = document.getElementById('toggleVibrate');
 const flagEl = document.getElementById('recordFlag');
-flagEl.textContent = (run.startedFromShuffle && !run.usedRestore) ? '（本局可計入紀錄）' : '（本局不計入紀錄）';
-function restore() {
-  // 還原舊狀態，不算新局
-  isNewGame = false;
-  // ...把狀態復原
-  draw();
-}
 
-function checkWin() {
-  if (puzzleSolved()) {
-    if (isNewGame) {
-      // 只有新局通關才更新最佳紀錄
-      let best = localStorage.getItem('bestSteps');
-      if (!best || moves < best) {
-        localStorage.setItem('bestSteps', moves);
-      }
-    }
-    alert("成功破關！");
-  }
-}
-/* ====== 歷史最佳紀錄（依「物種 + 尺寸」分開）====== */
+// 震動
+let vibrateOn = localStorage.getItem('turtle_vibrate') !== 'off';
+
+/* ====== 紀錄（依物種+尺寸）====== */
 const LS_KEY = 'turtle_puzzle_records_v2';
 function loadRecords(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e){ return {}; } }
-function saveRecords(){ localStorage.setItem(LS_KEY, JSON.stringify(records)); }
-function keyOf(turtle, n){ return `${turtle}__${n}`; }
-let records = loadRecords(); // { "leatherback__3": {bestMoves, bestTimeMs}, ... }
+function saveRecords(r){ localStorage.setItem(LS_KEY, JSON.stringify(r)); }
+function keyOf(t,n){ return `${t}__${n}`; }
+let records = loadRecords();
 
 function updateBestUI(){
 const r = records[keyOf(currentTurtle, N)] || {};
@@ -173,68 +137,61 @@ document.getElementById('bestTime').textContent = (r.bestTimeMs!=null) ? formatM
 }
 
 /* ====== 工具 ====== */
-const p2xy = p => ({ x: p % N, y: Math.floor(p / N) });
-const xy2p = (x,y) => y * N + x;
+const p2xy = p => ({ x:p%N, y:Math.floor(p/N) });
+const xy2p = (x,y) => y*N + x;
 
 function formatMs(ms){
-const m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000), ds= Math.floor((ms%1000)/100);
+const m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000), ds = Math.floor((ms%1000)/100);
 return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${ds}`;
 }
 function preload(src){ const i = new Image(); i.src = src; }
-
 function setBoardAspect(src){
 const img = new Image();
-img.onload = () => { board.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`; draw(); };
+img.onload = ()=>{ board.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`; draw(); };
 img.src = src;
 }
 
-/* ====== Haptics（震動）====== */
+/* ====== Haptics ====== */
 function haptic(kind){
-if(!vibrateOn) return;
-if(!('vibrate' in navigator)) return; // iOS Safari 多半不支援
-if(kind === 'move') navigator.vibrate(12);
+if(!vibrateOn || !('vibrate' in navigator)) return;
+if(kind==='move') navigator.vibrate(12);
 else if(kind==='shuffle') navigator.vibrate([8,30,8]);
 else if(kind==='win') navigator.vibrate([25,30,25,30,40]);
 }
 
 /* ====== 計時器 ====== */
 function startTimer(){
-stopTimer();
-startTime = Date.now(); elapsedMs = 0;
+stopTimer(); startTime = Date.now(); elapsedMs = 0;
 timeEl.textContent = '00:00.0';
 timer = setInterval(()=>{ elapsedMs = Date.now() - startTime; timeEl.textContent = formatMs(elapsedMs); }, 100);
 }
 function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
 
-/* ====== 洗牌（合法步驟打亂 → 一定可解）====== */
+/* ====== 洗牌（一定可解）====== */
 function shuffle(){
-  tiles = Array.from({length: total}, (_,i)=>i);
-  const steps = 80 * N * N;
-  for(let i=0;i<steps;i++){
-    const e = tiles.indexOf(emptyGoal);
-    const {x,y} = p2xy(e);
-    const ops = [];
-    if(x>0)   ops.push(xy2p(x-1,y));
-    if(x<N-1) ops.push(xy2p(x+1,y));
-    if(y>0)   ops.push(xy2p(x,y-1));
-    if(y<N-1) ops.push(xy2p(x,y+1));
-    const s = ops[Math.floor(Math.random()*ops.length)];
-    [tiles[e], tiles[s]] = [tiles[s], tiles[e]];
-  }
-  moves = 0; movesEl.textContent = moves;
-  startTimer(); winEl.classList.remove('show');
-  draw();
-  haptic('shuffle');             // ← 合併成一行
-
-  // ★ 洗牌代表新局，可計入紀錄
-  run.startedFromShuffle = true;
-  run.usedRestore = false;
-  run.seed = Date.now();
-
-  const flagEl = document.getElementById('recordFlag');
-  if (flagEl) flagEl.textContent = '（本局可計入紀錄）';
+tiles = Array.from({length: total}, (_,i)=>i);
+const steps = 80 * N * N;
+for(let i=0;i<steps;i++){
+const e = tiles.indexOf(emptyGoal);
+const {x,y} = p2xy(e);
+const ops = [];
+if(x>0) ops.push(xy2p(x-1,y));
+if(x<N-1) ops.push(xy2p(x+1,y));
+if(y>0) ops.push(xy2p(x,y-1));
+if(y<N-1) ops.push(xy2p(x,y+1));
+const s = ops[Math.floor(Math.random()*ops.length)];
+[tiles[e], tiles[s]] = [tiles[s], tiles[e]];
 }
-  ('shuffle');
+moves = 0; movesEl.textContent = moves;
+startTimer(); winEl.classList.remove('show');
+draw();
+haptic('shuffle');
+
+// 新局可計入紀錄
+run.startedFromShuffle = true;
+run.usedRestore = false;
+run.seed = Date.now();
+if (flagEl) flagEl.textContent = '（本局可計入紀錄）';
 }
 
 /* ====== 棋盤格線 ====== */
@@ -263,17 +220,16 @@ gridlines.style.background =
 /* ====== 繪製 ====== */
 function draw(){
 board.querySelectorAll('.tile').forEach(t=>t.remove());
-
 const bw = board.clientWidth, bh = board.clientHeight;
-const cellX = bw / N, cellY = bh / N;
+const cellX = bw/N, cellY = bh/N;
 
 tiles.forEach((val, idx)=>{
-const {x, y} = p2xy(idx);
+const {x,y} = p2xy(idx);
 const tile = document.createElement('div');
-tile.className = 'tile' + (val === emptyGoal ? ' empty' : '');
+tile.className = 'tile' + (val===emptyGoal ? ' empty':'');
 tile.style.width = `${cellX - 4}px`;
 tile.style.height = `${cellY - 4}px`;
-tile.style.transform = `translate(${x * cellX + 2}px, ${y * cellY + 2}px)`;
+tile.style.transform = `translate(${x*cellX + 2}px, ${y*cellY + 2}px)`;
 tile.style.backgroundImage = `url('${turtleData[currentTurtle].img}')`;
 tile.style.backgroundSize = `${N*100}% ${N*100}%`;
 const bx = (100/(N-1)) * p2xy(val).x;
@@ -284,11 +240,10 @@ tile.addEventListener('click', ()=>move(idx));
 tile.addEventListener('touchstart', e=>{ e.preventDefault(); move(idx); }, {passive:false});
 board.appendChild(tile);
 });
-
 updateGridlines();
 }
 
-/* ====== 移動與勝利判定 ====== */
+/* ====== 移動與勝利 ====== */
 function move(idx){
 const e = tiles.indexOf(emptyGoal);
 const a = p2xy(idx), b = p2xy(e);
@@ -300,52 +255,56 @@ if(tiles.every((v,i)=>v===i)){
 stopTimer();
 winSound.currentTime = 0; winSound.play().catch(()=>{});
 haptic('win');
- 
-  function clearCurrentRecord(){
-  const key = `${currentTurtle}__${N}`;
-  const store = JSON.parse(localStorage.getItem('turtle_puzzle_records_v2') || '{}');
-  if (store[key]) {
-    delete store[key];
-    localStorage.setItem('turtle_puzzle_records_v2', JSON.stringify(store));
-    document.getElementById('bestMoves').textContent = '—';
-    document.getElementById('bestTime').textContent  = '—';
-    alert(`已清除「${currentTurtle}」${N}×${N} 的最佳紀錄`);
-  } else {
-    alert('目前這一關沒有已儲存的最佳紀錄');
-  }
+showWinCardAndRecord();
 }
-window.clearCurrentRecord = clearCurrentRecord; // 讓 HTML onclick 可呼叫
 }
 }
 
-ffunction showWinCardAndRecord(){
-  const eligible = run.startedFromShuffle && !run.usedRestore;
-  let broke = false; // ← 放在外層，下面可共用
+function showWinCardAndRecord(){
+const eligible = run.startedFromShuffle && !run.usedRestore;
+let broke = false;
 
-  if (eligible) {
-    const k = `${currentTurtle}__${N}`;
-    const r = records[k] || {};
-    if(r.bestMoves==null || moves < r.bestMoves){ r.bestMoves = moves; broke = true; }
-    if(r.bestTimeMs==null || elapsedMs < r.bestTimeMs){ r.bestTimeMs = elapsedMs; broke = true; }
-    records[k] = r; saveRecords(); updateBestUI();
-  }
-
-  const data = turtleData[currentTurtle];
-  const extra = eligible
-    ? (broke ? '<br><strong>🎉 刷新歷史最佳！</strong>' : '')
-    : '<br><em style="color:#888">（此局含還原／非新局，不列入最佳紀錄）</em>';
-
-  winEl.innerHTML = `
-    <div class="card" role="dialog" aria-label="完成解說卡">
-      <img src="${data.infoImg}" alt="${data.title}" onerror="this.src='${data.img}'">
-      <h2>${data.title}</h2>
-      <p style="text-align:left">${data.desc}</p>
-      <p class="small">本局步數：${movesEl.textContent}｜用時：${timeEl.textContent}${extra}</p>
-      <button onclick="document.getElementById('win').classList.remove('show')">關閉</button>
-    </div>`;
-  winEl.classList.add('show');
+if (eligible) {
+const k = `${currentTurtle}__${N}`;
+const r = records[k] || {};
+if(r.bestMoves==null || moves < r.bestMoves){ r.bestMoves = moves; broke = true; }
+if(r.bestTimeMs==null || elapsedMs < r.bestTimeMs){ r.bestTimeMs = elapsedMs; broke = true; }
+records[k] = r; saveRecords(records); updateBestUI();
 }
-/* ====== 尺寸切換與事件 ====== */
+
+const data = turtleData[currentTurtle];
+const extra = eligible
+? (broke ? '<br><strong>🎉 刷新歷史最佳！</strong>' : '')
+: '<br><em style="color:#888">（此局含還原／非新局，不列入最佳紀錄）</em>';
+
+winEl.innerHTML = `
+<div class="card" role="dialog" aria-label="完成解說卡">
+<img src="${data.infoImg}" alt="${data.title}" onerror="this.src='${data.img}'">
+<h2>${data.title}</h2>
+<p style="text-align:left">${data.desc}</p>
+<p class="small">本局步數：${movesEl.textContent}｜用時：${timeEl.textContent}${extra}</p>
+<button onclick="document.getElementById('win').classList.remove('show')">關閉</button>
+</div>`;
+winEl.classList.add('show');
+}
+
+/* ====== 只清除「當前關卡」紀錄 ====== */
+function clearCurrentRecord(){
+const key = `${currentTurtle}__${N}`;
+const store = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+if (store[key]) {
+delete store[key];
+localStorage.setItem(LS_KEY, JSON.stringify(store));
+document.getElementById('bestMoves').textContent = '—';
+document.getElementById('bestTime').textContent = '—';
+alert(`已清除「${currentTurtle}」${N}×${N} 的最佳紀錄`);
+} else {
+alert('目前這一關沒有已儲存的最佳紀錄');
+}
+}
+window.clearCurrentRecord = clearCurrentRecord; // 給 HTML onclick 用
+
+/* ====== 尺寸與事件 ====== */
 function changeSize(n){
 N = n; total = N*N; emptyGoal = total - 1;
 document.querySelectorAll('.sizeBtn').forEach(btn=>{
@@ -357,19 +316,19 @@ updateBestUI();
 }
 
 document.getElementById('shuffle').addEventListener('click', shuffle);
+
 document.getElementById('reset').addEventListener('click', ()=>{
-  tiles = Array.from({length: total}, (_,i)=>i);
-  moves = 0; movesEl.textContent = moves;
-  stopTimer(); elapsedMs = 0; timeEl.textContent='00:00.0';
-  draw();
+tiles = Array.from({length: total}, (_,i)=>i);
+moves = 0; movesEl.textContent = moves;
+stopTimer(); elapsedMs = 0; timeEl.textContent='00:00.0';
+draw();
 
-  // ★ 還原 → 不列入紀錄
-  run.startedFromShuffle = false;
-  run.usedRestore = true;
-
-  const flagEl = document.getElementById('recordFlag');
-  if (flagEl) flagEl.textContent = '（本局不計入紀錄）';
+// 還原 → 不列入紀錄
+run.startedFromShuffle = false;
+run.usedRestore = true;
+if (flagEl) flagEl.textContent = '（本局不計入紀錄）';
 });
+
 document.querySelectorAll('.sizeBtn').forEach(btn=>{
 btn.addEventListener('click', ()=> changeSize(Number(btn.dataset.n)));
 });
@@ -383,7 +342,7 @@ shuffle();
 updateBestUI();
 });
 
-// 震動開關按鈕
+// 震動開關
 toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
 toggleBtn.addEventListener('click', ()=>{
 vibrateOn = !vibrateOn;
@@ -402,4 +361,5 @@ shuffle();
 </script>
 </body>
 </html>
+
 
