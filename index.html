@@ -119,22 +119,28 @@
   };
 
   /* ====== 狀態變數 ====== */
-  let N = 3;                          // 尺寸：2 / 3 / 4
-  let total = N * N;
-  let emptyGoal = total - 1;
-  let currentTurtle = 'leatherback';
+  /* ====== 狀態變數 ====== */
+let N = 3;
+let total = N * N;
+let emptyGoal = total - 1;
+let currentTurtle = 'leatherback';
 
-  const board    = document.getElementById('board');
-  const gridlines= document.getElementById('gridlines');
-  const movesEl  = document.getElementById('moves');
-  const timeEl   = document.getElementById('time');
-  const winEl    = document.getElementById('win');
-  const selectEl = document.getElementById('turtleSelect');
-  const winSound = document.getElementById('winSound');
+const board    = document.getElementById('board');
+const gridlines= document.getElementById('gridlines');
+const movesEl  = document.getElementById('moves');
+const timeEl   = document.getElementById('time');
+const winEl    = document.getElementById('win');
+const selectEl = document.getElementById('turtleSelect');
+const winSound = document.getElementById('winSound');
+
+let vibrateOn = localStorage.getItem('turtle_vibrate') !== 'off'; // ✅ 移到這裡
+let tiles = [];
+let moves = 0, timer = null, startTime = null, elapsedMs = 0;
+// …前面已有 shuffle/reset 的事件…
+
+// 震動開關按鈕（建議放在這裡）
 const toggleBtn = document.getElementById('toggleVibrate');
-if(vibrateOn) toggleBtn.textContent = "震動：開";
-else toggleBtn.textContent = "震動：關";
-
+toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
 toggleBtn.addEventListener('click', ()=>{
   vibrateOn = !vibrateOn;
   localStorage.setItem('turtle_vibrate', vibrateOn ? 'on' : 'off');
@@ -253,21 +259,13 @@ toggleBtn.addEventListener('click', ()=>{
     }
   }
 
-  function draw(){
-    // 先清乾淨
-    board.querySelectorAll('.tile').forEach(t => t.remove());
+ // …前面已有 shuffle/reset 的事件…
 
-    // 依目前棋盤實際寬高計算每格尺寸
-    const bw = board.clientWidth, bh = board.clientHeight;
-    const cellX = bw / N, cellY = bh / N;
-
-    // 每塊實際寬高與位置（用 transform）
-    tiles.forEach((val, idx) => {
-      const {x, y} = p2xy(idx);
-      const tile = document.createElement('div');
-      tile.className = 'tile' + (val === emptyGoal ? ' empty' : '');
-
-      // 尺寸與位置（留一點邊 2px）
-      tile.style.width  = `${cellX - 4}px`;
-      tile.style.height = `${cellY - 4}px`;
-      tile.style.transf
+// 震動開關按鈕（建議放在這裡）
+const toggleBtn = document.getElementById('toggleVibrate');
+toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
+toggleBtn.addEventListener('click', ()=>{
+  vibrateOn = !vibrateOn;
+  localStorage.setItem('turtle_vibrate', vibrateOn ? 'on' : 'off');
+  toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
+});
