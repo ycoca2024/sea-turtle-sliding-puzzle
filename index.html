@@ -112,6 +112,17 @@ let tiles = [];
 let moves = 0, timer = null, startTime = null, elapsedMs = 0;
 let isNewGame = true;
 
+function clearCurrentRecord() {
+  const turtle = document.querySelector('#turtleSelect').value; // 你選的海龜
+  const size = currentSize; // 你目前的格子數，像 "3x3"
+  
+  localStorage.removeItem(`bestSteps_${turtle}_${size}`);
+  localStorage.removeItem(`bestTime_${turtle}_${size}`);
+  
+  alert(`${turtle} ${size} 的最佳紀錄已清除`);
+  location.reload();
+}
+  
 function reset() {
   // 重開一局
   isNewGame = true;
