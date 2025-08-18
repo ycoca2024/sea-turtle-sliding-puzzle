@@ -62,6 +62,7 @@
     </div>
     <button id="shuffle">重新洗牌</button>
     <button id="reset">還原</button>
+    <button id="toggleVibrate">震動：開</button>
 
     <div class="stats">
       <span>步數：<strong id="moves">0</strong></span>
@@ -130,8 +131,17 @@
   const winEl    = document.getElementById('win');
   const selectEl = document.getElementById('turtleSelect');
   const winSound = document.getElementById('winSound');
+const toggleBtn = document.getElementById('toggleVibrate');
+if(vibrateOn) toggleBtn.textContent = "震動：開";
+else toggleBtn.textContent = "震動：關";
 
+toggleBtn.addEventListener('click', ()=>{
+  vibrateOn = !vibrateOn;
+  localStorage.setItem('turtle_vibrate', vibrateOn ? 'on' : 'off');
+  toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
+});
   let tiles = [];
+  let vibrateOn = localStorage.getItem('turtle_vibrate') !== 'off'; // 預設開啟
   let moves = 0, timer = null, startTime = null, elapsedMs = 0;
 
   /* ====== 歷史最佳紀錄（依「物種 + 尺寸」分開）====== */
@@ -174,6 +184,7 @@
 
   /* ====== Haptics（震動）====== */
   function haptic(kind){
+  if(!vibrateOn) return;  // 使用者關閉時不震動
     if(!('vibrate' in navigator)) return; // iOS Safari 大多不支援，略過即可
     // 用較短的 pattern，避免干擾
     if(kind === 'move'){
