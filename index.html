@@ -37,7 +37,6 @@ transition:transform .12s ease;will-change:transform;
   @media (max-width: 520px){
   #clearCurrent{ order: 98; width: 100%; }
   .stats{ order: 99; width: 100%; justify-content:flex-start; }
-    <span id="recordFlag" class="small"></span>
 }
 </style>
 </head>
@@ -74,6 +73,7 @@ transition:transform .12s ease;will-change:transform;
 <span>|</span>
 <span>歷史最佳步數：<strong id="bestMoves">—</strong></span>
 <span>歷史最佳時間：<strong id="bestTime">—</strong></span>
+ <span id="recordFlag" class="small"></span>
 </div>
 </div>
 
@@ -127,29 +127,7 @@ let tiles = [];
 let moves = 0, timer = null, startTime = null, elapsedMs = 0;
 let isNewGame = true;
 
-(function(){
-  // …你原本的變數，如 currentTurtle、N、LS_KEY = 'turtle_puzzle_records_v2' 等…
 
-  // 只清除「目前海龜 + 目前尺寸」的最佳紀錄
-  function _clearCurrentRecord(){
-    const key = `${currentTurtle}__${N}`;                  // 例：革龜__3
-    const STORE_KEY = (typeof LS_KEY==='string' && LS_KEY) ? LS_KEY : 'turtle_puzzle_records_v2';
-
-    const store = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
-    if (store[key]) {
-      delete store[key];
-      localStorage.setItem(STORE_KEY, JSON.stringify(store));
-      // 立即更新畫面
-      document.getElementById('bestMoves').textContent = '—';
-      document.getElementById('bestTime').textContent  = '—';
-      alert(`已清除「${currentTurtle}」${N}×${N} 的最佳紀錄`);
-    } else {
-      alert(`目前這一關沒有已儲存的最佳紀錄（key: ${key}）`);
-    }
-  }
-
-  // ★ 讓 inline onclick 能叫得到（很重要）
-  window.clearCurrentRecord = _clearCurrentRecord;
 
   // …其餘程式（事件綁定、shuffle、draw 等）…
 })();
@@ -230,25 +208,32 @@ function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
 
 /* ====== 洗牌（合法步驟打亂 → 一定可解）====== */
 function shuffle(){
-tiles = Array.from({length: total}, (_,i)=>i);
-const steps = 80 * N * N;
-for(let i=0;i<steps;i++){
-const e = tiles.indexOf(emptyGoal);
-const {x,y} = p2xy(e);
-const ops = [];
-if(x>0) ops.push(xy2p(x-1,y));
-if(x<N-1) ops.push(xy2p(x+1,y));
-if(y>0) ops.push(xy2p(x,y-1));
-if(y<N-1) ops.push(xy2p(x,y+1));
-const s = ops[Math.floor(Math.random()*ops.length)];
-[tiles[e], tiles[s]] = [tiles[s], tiles[e]];
+  tiles = Array.from({length: total}, (_,i)=>i);
+  const steps = 80 * N * N;
+  for(let i=0;i<steps;i++){
+    const e = tiles.indexOf(emptyGoal);
+    const {x,y} = p2xy(e);
+    const ops = [];
+    if(x>0)   ops.push(xy2p(x-1,y));
+    if(x<N-1) ops.push(xy2p(x+1,y));
+    if(y>0)   ops.push(xy2p(x,y-1));
+    if(y<N-1) ops.push(xy2p(x,y+1));
+    const s = ops[Math.floor(Math.random()*ops.length)];
+    [tiles[e], tiles[s]] = [tiles[s], tiles[e]];
+  }
+  moves = 0; movesEl.textContent = moves;
+  startTimer(); winEl.classList.remove('show');
+  draw();
+  haptic('shuffle');             // ← 合併成一行
+
+  // ★ 洗牌代表新局，可計入紀錄
+  run.startedFromShuffle = true;
+  run.usedRestore = false;
+  run.seed = Date.now();
+
+  const flagEl = document.getElementById('recordFlag');
+  if (flagEl) flagEl.textContent = '（本局可計入紀錄）';
 }
-moves=0; movesEl.textContent=moves;
-startTimer(); winEl.classList.remove('show');
-draw(); haptic
-run.startedFromShuffle = true;
-run.usedRestore = false;
-run.seed = Date.now(); // 單純做個識別碼
   ('shuffle');
 }
 
@@ -315,25 +300,40 @@ if(tiles.every((v,i)=>v===i)){
 stopTimer();
 winSound.currentTime = 0; winSound.play().catch(()=>{});
 haptic('win');
-showWinCardAndRecord();
+ 
+  function clearCurrentRecord(){
+  const key = `${currentTurtle}__${N}`;
+  const store = JSON.parse(localStorage.getItem('turtle_puzzle_records_v2') || '{}');
+  if (store[key]) {
+    delete store[key];
+    localStorage.setItem('turtle_puzzle_records_v2', JSON.stringify(store));
+    document.getElementById('bestMoves').textContent = '—';
+    document.getElementById('bestTime').textContent  = '—';
+    alert(`已清除「${currentTurtle}」${N}×${N} 的最佳紀錄`);
+  } else {
+    alert('目前這一關沒有已儲存的最佳紀錄');
+  }
 }
+window.clearCurrentRecord = clearCurrentRecord; // 讓 HTML onclick 可呼叫
 }
 }
 
-function showWinCardAndRecord(){
+ffunction showWinCardAndRecord(){
   const eligible = run.startedFromShuffle && !run.usedRestore;
+  let broke = false; // ← 放在外層，下面可共用
 
   if (eligible) {
     const k = `${currentTurtle}__${N}`;
     const r = records[k] || {};
-    let broke = false;
     if(r.bestMoves==null || moves < r.bestMoves){ r.bestMoves = moves; broke = true; }
     if(r.bestTimeMs==null || elapsedMs < r.bestTimeMs){ r.bestTimeMs = elapsedMs; broke = true; }
     records[k] = r; saveRecords(); updateBestUI();
   }
 
   const data = turtleData[currentTurtle];
-  const extra = eligible ? '' : '<br><em style="color:#888">（此局含還原／非新局，不列入最佳紀錄）</em>';
+  const extra = eligible
+    ? (broke ? '<br><strong>🎉 刷新歷史最佳！</strong>' : '')
+    : '<br><em style="color:#888">（此局含還原／非新局，不列入最佳紀錄）</em>';
 
   winEl.innerHTML = `
     <div class="card" role="dialog" aria-label="完成解說卡">
@@ -345,7 +345,6 @@ function showWinCardAndRecord(){
     </div>`;
   winEl.classList.add('show');
 }
-
 /* ====== 尺寸切換與事件 ====== */
 function changeSize(n){
 N = n; total = N*N; emptyGoal = total - 1;
@@ -364,9 +363,12 @@ document.getElementById('reset').addEventListener('click', ()=>{
   stopTimer(); elapsedMs = 0; timeEl.textContent='00:00.0';
   draw();
 
-  // ★ 還原之後，這一局不列入最佳紀錄
+  // ★ 還原 → 不列入紀錄
   run.startedFromShuffle = false;
   run.usedRestore = true;
+
+  const flagEl = document.getElementById('recordFlag');
+  if (flagEl) flagEl.textContent = '（本局不計入紀錄）';
 });
 document.querySelectorAll('.sizeBtn').forEach(btn=>{
 btn.addEventListener('click', ()=> changeSize(Number(btn.dataset.n)));
