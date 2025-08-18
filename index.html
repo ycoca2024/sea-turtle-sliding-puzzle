@@ -34,6 +34,10 @@ transition:transform .12s ease;will-change:transform;
 .small{font-size:12px;opacity:.8}
 .sizes{display:flex;gap:6px;flex-wrap:wrap}
 .sizes button.active{background:#1aa37a}
+  @media (max-width: 520px){
+  #clearCurrent{ order: 98; width: 100%; }
+  .stats{ order: 99; width: 100%; justify-content:flex-start; }
+}
 </style>
 </head>
 <body>
@@ -62,7 +66,7 @@ transition:transform .12s ease;will-change:transform;
 <button id="shuffle">重新洗牌</button>
 <button id="reset">還原</button>
 <button id="toggleVibrate">震動：開</button>
-<button onclick="clearCurrentRecord()">清除當前紀錄</button>
+<button id="clearCurrent" onclick="clearCurrentRecord()">清除當前紀錄</button>
 <div class="stats">
 <span>步數：<strong id="moves">0</strong></span>
 <span>時間：<strong id="time">00:00.0</strong></span>
@@ -112,23 +116,32 @@ let tiles = [];
 let moves = 0, timer = null, startTime = null, elapsedMs = 0;
 let isNewGame = true;
 
-function clearCurrentRecord() {
-  // 你程式裡已有的兩個變數：currentTurtle（下拉選擇值），N（2/3/4）
-  const key = `${currentTurtle}__${N}`;
-  const STORE_KEY = 'turtle_puzzle_records_v2'; // 你的程式用的 key
+(function(){
+  // …你原本的變數，如 currentTurtle、N、LS_KEY = 'turtle_puzzle_records_v2' 等…
 
-  const store = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
-  if (store[key]) {
-    delete store[key];
-    localStorage.setItem(STORE_KEY, JSON.stringify(store));
-    // 立刻把 UI 清空
-    document.getElementById('bestMoves').textContent = '—';
-    document.getElementById('bestTime').textContent  = '—';
-    alert(`已清除「${currentTurtle}」${N}×${N} 的最佳紀錄`);
-  } else {
-    alert('目前這一關沒有已儲存的最佳紀錄');
+  // 只清除「目前海龜 + 目前尺寸」的最佳紀錄
+  function _clearCurrentRecord(){
+    const key = `${currentTurtle}__${N}`;                  // 例：革龜__3
+    const STORE_KEY = (typeof LS_KEY==='string' && LS_KEY) ? LS_KEY : 'turtle_puzzle_records_v2';
+
+    const store = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+    if (store[key]) {
+      delete store[key];
+      localStorage.setItem(STORE_KEY, JSON.stringify(store));
+      // 立即更新畫面
+      document.getElementById('bestMoves').textContent = '—';
+      document.getElementById('bestTime').textContent  = '—';
+      alert(`已清除「${currentTurtle}」${N}×${N} 的最佳紀錄`);
+    } else {
+      alert(`目前這一關沒有已儲存的最佳紀錄（key: ${key}）`);
+    }
   }
-}
+
+  // ★ 讓 inline onclick 能叫得到（很重要）
+  window.clearCurrentRecord = _clearCurrentRecord;
+
+  // …其餘程式（事件綁定、shuffle、draw 等）…
+})();
 function reset() {
   // 重開一局
   isNewGame = true;
