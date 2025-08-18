@@ -2,306 +2,261 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>海龜華容道｜拼圖切片版（2×2 / 4×4）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>海龜華容道｜2×2 / 3×3 / 4×4（步數＋時間紀錄＋震動提示）</title>
 <style>
-  :root { --gap: 6px; --tile: 88px; }
-  body{margin:0;background:#0e2a3b;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Arial}
-  header{padding:14px 16px;text-align:center}
-  h1{margin:0;font-size:20px}
-  .controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:10px 0 6px}
-  button{
-    border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:600;
-    background:#16a085;color:#fff
-  }
-  button.secondary{background:#34495e}
-  button:disabled{opacity:.6;cursor:default}
-  .panel{max-width:520px;margin:0 auto 14px;display:grid;gap:8px;padding:0 14px}
-  .stats{
-    display:grid;gap:6px;background:#113549;border:1px solid #1f5979;border-radius:12px;padding:10px 12px
-  }
-  .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
-  .label{opacity:.9}
-  .value{font-weight:700}
-  .board-wrap{display:flex;justify-content:center;margin:4px 0 24px}
-  .grid{
-    display:grid;gap:var(--gap);background:#133c52;padding:var(--gap);
-    border-radius:12px;border:1px solid #1f5979;touch-action:manipulation;
-  }
+  :root { --gap: 3px; }
+  body{font-family: system-ui, -apple-system, "Segoe UI", Arial; margin:0; background:#0e2a3b; color:#fff}
+  .wrap{max-width:900px;margin:0 auto;padding:16px}
+  h1{font-size:20px;margin:0 0 6px}
+  .subtitle{opacity:.9;margin:6px 0 10px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  select,button{background:#1f6f8b;color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
+  select{appearance:none}
+  button:hover{filter:brightness(1.1)}
+  .stats{margin-left:auto;display:flex;gap:12px;align-items:center;font-variant-numeric:tabular-nums; flex-wrap:wrap}
+  .board{width:min(92vw,720px);aspect-ratio:1/1;position:relative;border-radius:14px;background:#102534;
+         box-shadow:0 12px 36px rgba(0,0,0,.4);margin:10px auto;touch-action:manipulation;user-select:none;overflow:hidden}
   .tile{
-    position:relative;
-    width:var(--tile);height:var(--tile);
-    display:flex;align-items:center;justify-content:center;
-    background:#1abc9c;color:#fff;border-radius:10px;user-select:none;cursor:pointer;
-    transition:transform .08s ease, box-shadow .08s ease;
-    box-shadow:0 2px 0 rgba(0,0,0,.3);
-    overflow:hidden;
+        position:absolute;
+        background-size:cover;background-repeat:no-repeat;background-position:center;
+        border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 6px 14px rgba(0,0,0,.35);
+        transition:transform .12s ease;will-change:transform;
   }
-  .tile:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
-  .tile .num{
-    position:absolute;right:6px;bottom:6px;
-    font-size:14px;font-weight:900;
-    background:rgba(0,0,0,.45);padding:2px 6px;border-radius:6px;
-  }
-  .hide-numbers .tile .num{ display:none; }
-  .empty{background:#0e2a3b;border:2px dashed #1f5979;box-shadow:none;cursor:default}
-  footer{opacity:.8;text-align:center;margin:18px 0 40px;font-size:12px}
-  @media (max-width:420px){
-    :root{ --tile: 72px; --gap: 5px;}
-  }
+  .tile::after{content:"";position:absolute;inset:0;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+  .tile.empty{opacity:0;pointer-events:none}
+  .gridlines{position:absolute;inset:0;border-radius:14px;pointer-events:none}
+  .win{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.25);backdrop-filter:blur(2px);z-index:10; padding:12px;}
+  .win.show{display:grid}
+  .win .card{background:#fff;color:#123;padding:18px 22px;border-radius:12px;max-width:min(90vw,560px);max-height: calc(100% - 24px); overflow:auto; -webkit-overflow-scrolling:touch;}
+  .win .card img{max-width:100%;border-radius:8px;margin-bottom:10px;width:100%;height:auto;display:block}
+  .win .card h2{margin:.2em 0 .4em;font-size:18px}
+  .win .card p{margin:.3em 0 1em;line-height:1.5}
+  .small{font-size:12px;opacity:.8}
+  .sizes{display:flex;gap:6px;flex-wrap:wrap}
+  .sizes button.active{background:#1aa37a}
 </style>
 </head>
 <body>
-<header>
-  <h1>🐢 海龜華容道（切片拼圖版）</h1>
-  <div class="controls">
-    <button id="btn2" onclick="startGame(2)">2×2 簡易版</button>
-    <button id="btn4" onclick="startGame(4)">4×4 進階版</button>
-    <button class="secondary" onclick="reshuffle()">重排 / 新局</button>
-    <button class="secondary" id="btnToggleNum" onclick="toggleNumbers()">隱藏編號</button>
-  </div>
-</header>
+<div class="wrap">
+  <h1>海龜華容道</h1>
 
-<section class="panel">
-  <div class="stats">
-    <div class="row"><span class="label">目前盤面：</span><span class="value" id="labelSize">4×4</span></div>
-    <div class="row"><span class="label">步數：</span><span class="value" id="currMoves">0</span></div>
-    <div class="row"><span class="label">時間：</span><span class="value" id="currTime">00:00.0</span></div>
-    <hr style="border:none;border-top:1px solid #1f5979;opacity:.7">
-    <div class="row"><span class="label">歷史最佳步數：</span><span class="value" id="bestMoves">—</span></div>
-    <div class="row"><span class="label">歷史最佳時間：</span><span class="value" id="bestTime">—</span></div>
+  <div class="subtitle">
+    選擇海龜種類：
+    <select id="turtleSelect" aria-label="選擇海龜種類">
+      <option value="leatherback">革龜</option>
+      <option value="green">綠蠵龜</option>
+      <option value="olive">欖蠵龜</option>
+      <option value="hawksbill">玳瑁</option>
+      <option value="loggerhead">赤蠵龜</option>
+    </select>
   </div>
-</section>
 
-<div class="board-wrap">
-  <div id="grid" class="grid" aria-label="滑塊拼圖棋盤"></div>
+  <div class="subtitle">點擊或觸控相鄰空格的拼圖塊，使圖片還原。</div>
+
+  <div class="toolbar">
+    <div class="sizes" role="group" aria-label="選擇難度">
+      <button data-n="2" class="sizeBtn">2×2 低階</button>
+      <button data-n="3" class="sizeBtn active">3×3</button>
+      <button data-n="4" class="sizeBtn">4×4 高階</button>
+    </div>
+    <button id="shuffle">重新洗牌</button>
+    <button id="reset">還原</button>
+
+    <div class="stats">
+      <span>步數：<strong id="moves">0</strong></span>
+      <span>時間：<strong id="time">00:00.0</strong></span>
+      <span>|</span>
+      <span>歷史最佳步數：<strong id="bestMoves">—</strong></span>
+      <span>歷史最佳時間：<strong id="bestTime">—</strong></span>
+    </div>
+  </div>
+
+  <div class="board" id="board" aria-label="Sliding puzzle board" aria-live="polite">
+    <div class="gridlines" id="gridlines" aria-hidden="true"></div>
+    <div class="win" id="win"><div class="card"><strong>完成！</strong></div></div>
+  </div>
 </div>
 
+<!-- 破關音效 -->
 <audio id="winSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
 
-<footer>提示：將程式中的 <code>IMG_URL</code> 改成你的海龜圖片路徑（建議正方形圖）。記錄儲存在本機瀏覽器（依尺寸）。</footer>
-
 <script>
-/* ---------- 設定：換成你的圖片路徑 ---------- */
-const IMG_URL = "your-turtle-image.jpg"; // ←← 把這裡換掉
+(function(){
+  /* ====== 物種資料（圖片、解說）====== */
+  const turtleData = {
+    leatherback: {
+      img: 'leatherback.jpg',
+      title: '革龜（Dermochelys coriacea）',
+      desc: '世界上最大的海龜，體長常見 1.5–2.0 公尺以上、體重可逾 500–900 公斤。背甲無硬鱗，為革質外皮覆蓋骨板而得名。台灣曾於東部外海、澎湖、東沙海域有紀錄。',
+      infoImg: 'leatherback_info.jpg'
+    },
+    green: {
+      img: 'green.jpg',
+      title: '綠蠵龜（Chelonia mydas）',
+      desc: '成龜以海草、海藻為主食，體色偏綠。台灣常見於蘭嶼、綠島與墾丁海域，亦有上岸產卵紀錄點。',
+      infoImg: 'green_info.jpg'
+    },
+    olive: {
+      img: 'olive.jpg',
+      title: '欖蠵龜（Lepidochelys olivacea）',
+      desc: '體型較小，背甲橄欖綠色，常見於熱帶及亞熱帶沿海。台灣海域偶有出現紀錄。',
+      infoImg: 'olive_info.jpg'
+    },
+    hawksbill: {
+      img: 'hawksbill.jpg',
+      title: '玳瑁（Eretmochelys imbricata）',
+      desc: '背甲鱗片重疊、龜甲邊緣具鋸齒，常活動於珊瑚礁。台灣南部及離島珊瑚礁區較易見。',
+      infoImg: 'hawksbill_info.jpg'
+    },
+    loggerhead: {
+      img: 'loggerhead.jpg',
+      title: '赤蠵龜（Caretta caretta）',
+      desc: '頭部寬大、背甲紅褐色，偏好硬殼無脊椎動物。台灣周邊海域有洄游與偶見紀錄。',
+      infoImg: 'loggerhead_info.jpg'
+    }
+  };
 
-/* ---------- 狀態變數 ---------- */
-let size = 4;
-let tiles = [];            // 1..n^2-1 與 null
-let moves = 0;
-let timerId = null;
-let startAt = null;
-let elapsedMs = 0;
-let showNumbers = true;
-const LS_KEY = "turtle_huarongdao_sprite_records_v1";
-let records = loadRecords();
+  /* ====== 狀態變數 ====== */
+  let N = 3;                          // 尺寸：2 / 3 / 4
+  let total = N * N;
+  let emptyGoal = total - 1;
+  let currentTurtle = 'leatherback';
 
-function loadRecords(){
-  try{ return JSON.parse(localStorage.getItem(LS_KEY)) || {}; }
-  catch(e){ return {}; }
-}
-function saveRecords(){
-  localStorage.setItem(LS_KEY, JSON.stringify(records));
-}
+  const board    = document.getElementById('board');
+  const gridlines= document.getElementById('gridlines');
+  const movesEl  = document.getElementById('moves');
+  const timeEl   = document.getElementById('time');
+  const winEl    = document.getElementById('win');
+  const selectEl = document.getElementById('turtleSelect');
+  const winSound = document.getElementById('winSound');
 
-/* ---------- UI 節點 ---------- */
-const gridEl = document.getElementById('grid');
-const currMovesEl = document.getElementById('currMoves');
-const currTimeEl  = document.getElementById('currTime');
-const labelSizeEl = document.getElementById('labelSize');
-const bestMovesEl = document.getElementById('bestMoves');
-const bestTimeEl  = document.getElementById('bestTime');
-const winSound    = document.getElementById('winSound');
-const btnToggleNum= document.getElementById('btnToggleNum');
+  let tiles = [];
+  let moves = 0, timer = null, startTime = null, elapsedMs = 0;
 
-/* ---------- 工具 ---------- */
-function formatMs(ms){
-  if(ms == null) return "—";
-  const m = Math.floor(ms/60000);
-  const s = Math.floor((ms%60000)/1000);
-  const ds= Math.floor((ms%1000)/100);
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${ds}`;
-}
-function updateStats(){
-  currMovesEl.textContent = moves;
-  currTimeEl.textContent  = formatMs(elapsedMs);
-  labelSizeEl.textContent = `${size}×${size}`;
-  const r = records[size] || {};
-  bestMovesEl.textContent = (r.bestMoves != null) ? `${r.bestMoves} 步` : "—";
-  bestTimeEl.textContent  = (r.bestTimeMs != null) ? formatMs(r.bestTimeMs) : "—";
-}
+  /* ====== 歷史最佳紀錄（依「物種 + 尺寸」分開）====== */
+  const LS_KEY = 'turtle_puzzle_records_v2';
+  function loadRecords(){
+    try{ return JSON.parse(localStorage.getItem(LS_KEY)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveRecords(){ localStorage.setItem(LS_KEY, JSON.stringify(records)); }
+  function keyOf(turtle, n){ return `${turtle}__${n}`; }
 
-/* ---------- 計時器 ---------- */
-function startTimer(){
-  stopTimer();
-  startAt = Date.now();
-  timerId = setInterval(()=>{
-    elapsedMs = Date.now() - startAt;
-    currTimeEl.textContent = formatMs(elapsedMs);
-  }, 100);
-}
-function stopTimer(){
-  if(timerId){ clearInterval(timerId); timerId = null; }
-}
+  let records = loadRecords(); // { "leatherback__3": {bestMoves: X, bestTimeMs: Y}, ... }
 
-/* ---------- 盤面生成與可解性 ---------- */
-function generateSolved(size){
-  const arr = [];
-  for(let i=1;i<size*size;i++) arr.push(i);
-  arr.push(null);
-  return arr;
-}
-function inversions(array){
-  const flat = array.filter(x => x !== null);
-  let inv = 0;
-  for(let i=0;i<flat.length;i++){
-    for(let j=i+1;j<flat.length;j++){
-      if(flat[i] > flat[j]) inv++;
+  function updateBestUI(){
+    const r = records[keyOf(currentTurtle, N)] || {};
+    document.getElementById('bestMoves').textContent = (r.bestMoves!=null) ? `${r.bestMoves} 步` : '—';
+    document.getElementById('bestTime').textContent  = (r.bestTimeMs!=null) ? formatMs(r.bestTimeMs) : '—';
+  }
+
+  /* ====== 工具 ====== */
+  const p2xy = p => ({ x: p % N, y: Math.floor(p / N) });
+  const xy2p = (x,y) => y * N + x;
+
+  function formatMs(ms){
+    const m = Math.floor(ms/60000);
+    const s = Math.floor((ms%60000)/1000);
+    const ds= Math.floor((ms%1000)/100);
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${ds}`;
+  }
+  function preload(src){ const i = new Image(); i.src = src; }
+
+  function setBoardAspect(src){
+    const img = new Image();
+    img.onload = () => {
+      board.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+      draw(); // 尺寸或比例變了，重畫
+    };
+    img.src = src;
+  }
+
+  /* ====== Haptics（震動）====== */
+  function haptic(kind){
+    if(!('vibrate' in navigator)) return; // iOS Safari 大多不支援，略過即可
+    // 用較短的 pattern，避免干擾
+    if(kind === 'move'){
+      navigator.vibrate(12);              // 成功移動：輕震一下
+    }else if(kind === 'shuffle'){
+      navigator.vibrate([8, 30, 8]);      // 重新洗牌：兩下短震
+    }else if(kind === 'win'){
+      navigator.vibrate([25, 30, 25, 30, 40]); // 破關：明顯一點
     }
   }
-  return inv;
-}
-// 可解條件（15-puzzle 規則）
-function isSolvable(arr, size){
-  const inv = inversions(arr);
-  if(size % 2 === 1){
-    return inv % 2 === 0;
-  }else{
-    const emptyIdx = arr.indexOf(null);
-    const emptyRowFromTop = Math.floor(emptyIdx / size);
-    const emptyRowFromBottom = size - emptyRowFromTop; // 1..size
-    return (inv % 2) !== (emptyRowFromBottom % 2);
+
+  /* ====== 計時器 ====== */
+  function startTimer(){
+    stopTimer();
+    startTime = Date.now();
+    elapsedMs = 0;
+    timeEl.textContent = '00:00.0';
+    timer = setInterval(()=>{
+      elapsedMs = Date.now() - startTime;
+      timeEl.textContent = formatMs(elapsedMs);
+    }, 100);
   }
-}
-function shuffleSolvable(size){
-  const base = generateSolved(size);
-  let arr = base.slice();
-  do{
-    for(let i=arr.length-1;i>0;i--){
-      const j = Math.floor(Math.random()*(i+1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+  function stopTimer(){ clearInterval(timer); timer = null; }
+
+  /* ====== 洗牌（用合法步驟打亂 → 一定可解）====== */
+  function shuffle(){
+    tiles = Array.from({length: total}, (_,i) => i);
+    const shuffleSteps = 80 * N * N; // 視尺寸調整打亂步數
+    for(let i=0; i<shuffleSteps; i++){
+      const e = tiles.indexOf(emptyGoal);
+      const {x,y} = p2xy(e);
+      const ops = [];
+      if(x>0)     ops.push(xy2p(x-1,y));
+      if(x<N-1)   ops.push(xy2p(x+1,y));
+      if(y>0)     ops.push(xy2p(x,y-1));
+      if(y<N-1)   ops.push(xy2p(x,y+1));
+      const s = ops[Math.floor(Math.random()*ops.length)];
+      [tiles[e], tiles[s]] = [tiles[s], tiles[e]];
     }
-  } while (!isSolvable(arr, size) || isSolved(arr));
-  return arr;
-}
-function isSolved(arr=tiles){
-  for(let i=0;i<size*size-1;i++){
-    if(arr[i] !== i+1) return false;
+    moves = 0; movesEl.textContent = moves;
+    startTimer(); winEl.classList.remove('show');
+    draw();
+    haptic('shuffle');
   }
-  return arr[arr.length-1] === null;
-}
 
-/* ---------- 背景切片定位 ---------- */
-// 將第 v 塊（1..n^2-1）對應到原圖中的 (col,row)
-function calcBackgroundForValue(v, size, tilePx){
-  const col = (v-1) % size;
-  const row = Math.floor((v-1) / size);
-  const posX = -(col * tilePx);
-  const posY = -(row * tilePx);
-  return { posX, posY };
-}
-
-/* ---------- 繪製 ---------- */
-function drawGrid(){
-  const tilePx = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tile')) || 88;
-  gridEl.style.gridTemplateColumns = `repeat(${size}, var(--tile))`;
-  gridEl.style.gridTemplateRows    = `repeat(${size}, var(--tile))`;
-  gridEl.classList.toggle('hide-numbers', !showNumbers);
-  gridEl.innerHTML = '';
-
-  tiles.forEach((val, idx)=>{
-    const div = document.createElement('div');
-    const isEmpty = (val === null);
-    div.className = 'tile' + (isEmpty ? ' empty' : '');
-    if(!isEmpty){
-      // 背景圖切片
-      const { posX, posY } = calcBackgroundForValue(val, size, tilePx);
-      div.style.backgroundImage = `url("${IMG_URL}")`;
-      div.style.backgroundSize  = `${size*tilePx}px ${size*tilePx}px`;
-      div.style.backgroundPosition = `${posX}px ${posY}px`;
-      // 編號角標（可切換顯示/隱藏）
-      const num = document.createElement('span');
-      num.className = 'num';
-      num.textContent = val;
-      div.appendChild(num);
-
-      div.setAttribute('role','button');
-      div.setAttribute('aria-label',`移動第 ${val} 塊`);
-      div.addEventListener('click', ()=>tryMove(idx));
-    }else{
-      // 空格用背景顏色表示
-      div.setAttribute('aria-label','空格');
+  /* ====== 繪製棋盤與切片 ====== */
+  function updateGridlines(){
+    if(N===2){
+      gridlines.style.background =
+        'linear-gradient(#ffffff26,#ffffff26) 0 50%/100% 1px no-repeat,'+
+        'linear-gradient(90deg,#ffffff26,#ffffff26) 50% 0/1px 100% no-repeat';
+    }else if(N===3){
+      gridlines.style.background =
+        'linear-gradient(#ffffff26,#ffffff26) 0 33.333%/100% 1px no-repeat,'+
+        'linear-gradient(#ffffff26,#ffffff26) 0 66.666%/100% 1px no-repeat,'+
+        'linear-gradient(90deg,#ffffff26,#ffffff26) 33.333% 0/1px 100% no-repeat,'+
+        'linear-gradient(90deg,#ffffff26,#ffffff26) 66.666% 0/1px 100% no-repeat';
+    }else{ // N===4
+      gridlines.style.background =
+        'linear-gradient(#ffffff26,#ffffff26) 0 25%/100% 1px no-repeat,'+
+        'linear-gradient(#ffffff26,#ffffff26) 0 50%/100% 1px no-repeat,'+
+        'linear-gradient(#ffffff26,#ffffff26) 0 75%/100% 1px no-repeat,'+
+        'linear-gradient(90deg,#ffffff26,#ffffff26) 25% 0/1px 100% no-repeat,'+
+        'linear-gradient(90deg,#ffffff26,#ffffff26) 50% 0/1px 100% no-repeat,'+
+        'linear-gradient(90deg,#ffffff26,#ffffff26) 75% 0/1px 100% no-repeat';
     }
-    gridEl.appendChild(div);
-  });
-}
-
-/* ---------- 移動 ---------- */
-function tryMove(idx){
-  const emptyIdx = tiles.indexOf(null);
-  const ex = emptyIdx % size, ey = Math.floor(emptyIdx/size);
-  const x  = idx % size,     y  = Math.floor(idx/size);
-  if(Math.abs(ex-x)+Math.abs(ey-y) === 1){
-    [tiles[emptyIdx], tiles[idx]] = [tiles[idx], tiles[emptyIdx]];
-    moves++;
-    drawGrid();
-    currMovesEl.textContent = moves;
-    checkWin();
   }
-}
 
-/* ---------- 破關 ---------- */
-function checkWin(){
-  if(!isSolved()) return;
-  stopTimer();
-  winSound.currentTime = 0;
-  winSound.play().catch(()=>{});
-  const usedMs = elapsedMs;
+  function draw(){
+    // 先清乾淨
+    board.querySelectorAll('.tile').forEach(t => t.remove());
 
-  const r = records[size] || {};
-  let broke = false;
-  if(r.bestMoves == null || moves < r.bestMoves){ r.bestMoves = moves; broke = true; }
-  if(r.bestTimeMs == null || usedMs < r.bestTimeMs){ r.bestTimeMs = usedMs; broke = true; }
-  records[size] = r; saveRecords(); updateStats();
+    // 依目前棋盤實際寬高計算每格尺寸
+    const bw = board.clientWidth, bh = board.clientHeight;
+    const cellX = bw / N, cellY = bh / N;
 
-  const msg = [
-    `✅ 破關成功！`,
-    `步數：${moves} 步`,
-    `時間：${formatMs(usedMs)}`,
-    (broke ? '🎉 恭喜刷新歷史最佳！' : '')
-  ].filter(Boolean).join('\n');
-  alert(msg);
-}
+    // 每塊實際寬高與位置（用 transform）
+    tiles.forEach((val, idx) => {
+      const {x, y} = p2xy(idx);
+      const tile = document.createElement('div');
+      tile.className = 'tile' + (val === emptyGoal ? ' empty' : '');
 
-/* ---------- 控制 ---------- */
-function startGame(n){
-  size = n;
-  tiles = shuffleSolvable(size);
-  moves = 0;
-  elapsedMs = 0;
-  updateStats();
-  drawGrid();
-  startTimer();
-  document.getElementById('btn2').disabled = (size===2);
-  document.getElementById('btn4').disabled = (size===4);
-}
-function reshuffle(){
-  tiles = shuffleSolvable(size);
-  moves = 0;
-  elapsedMs = 0;
-  updateStats();
-  drawGrid();
-  startTimer();
-}
-function toggleNumbers(){
-  showNumbers = !showNumbers;
-  btnToggleNum.textContent = showNumbers ? '隱藏編號' : '顯示編號';
-  drawGrid();
-}
-
-/* ---------- 鍵盤方向鍵 ---------- */
-document.addEventListener('keydown', (e)=>{
-  const key = e.key;
-  const emptyIdx = tiles.indexOf(null);
-  const ex = emptyIdx % size, ey = Math.floor(emptyIdx/size);
-  le
+      // 尺寸與位置（留一點邊 2px）
+      tile.style.width  = `${cellX - 4}px`;
+      tile.style.height = `${cellY - 4}px`;
+      tile.style.transf
