@@ -110,7 +110,35 @@ const toggleBtn= document.getElementById('toggleVibrate');
 let vibrateOn = localStorage.getItem('turtle_vibrate') !== 'off'; // ✅ 先宣告
 let tiles = [];
 let moves = 0, timer = null, startTime = null, elapsedMs = 0;
+let isNewGame = true;
 
+function reset() {
+  // 重開一局
+  isNewGame = true;
+  moves = 0;
+  // 重新打亂拼圖...
+  draw();
+}
+
+function restore() {
+  // 還原舊狀態，不算新局
+  isNewGame = false;
+  // ...把狀態復原
+  draw();
+}
+
+function checkWin() {
+  if (puzzleSolved()) {
+    if (isNewGame) {
+      // 只有新局通關才更新最佳紀錄
+      let best = localStorage.getItem('bestSteps');
+      if (!best || moves < best) {
+        localStorage.setItem('bestSteps', moves);
+      }
+    }
+    alert("成功破關！");
+  }
+}
 /* ====== 歷史最佳紀錄（依「物種 + 尺寸」分開）====== */
 const LS_KEY = 'turtle_puzzle_records_v2';
 function loadRecords(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e){ return {}; } }
