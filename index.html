@@ -37,6 +37,7 @@ transition:transform .12s ease;will-change:transform;
   @media (max-width: 520px){
   #clearCurrent{ order: 98; width: 100%; }
   .stats{ order: 99; width: 100%; justify-content:flex-start; }
+    <span id="recordFlag" class="small"></span>
 }
 </style>
 </head>
@@ -101,7 +102,17 @@ let N = 3; // 尺寸：2 / 3 / 4
 let total = N * N;
 let emptyGoal = total - 1;
 let currentTurtle = 'leatherback';
+// 紀錄這一局是否是「合法新局」
+let run = {
+  startedFromShuffle: false, // 只有按「重新洗牌」才會變成 true
+  usedRestore: false,        // 只要按過「還原」就會變成 true
+  seed: 0
+};
 
+// 用來確認打亂後的盤面（可留著以後要做更嚴格驗證）
+function tilesHash(arr){
+  return btoa(arr.map(v => v===emptyGoal ? 'E' : v).join(','));
+}
 const board = document.getElementById('board');
 const gridlines= document.getElementById('gridlines');
 const movesEl = document.getElementById('moves');
@@ -149,7 +160,8 @@ function reset() {
   // 重新打亂拼圖...
   draw();
 }
-
+const flagEl = document.getElementById('recordFlag');
+flagEl.textContent = (run.startedFromShuffle && !run.usedRestore) ? '（本局可計入紀錄）' : '（本局不計入紀錄）';
 function restore() {
   // 還原舊狀態，不算新局
   isNewGame = false;
@@ -233,7 +245,11 @@ const s = ops[Math.floor(Math.random()*ops.length)];
 }
 moves=0; movesEl.textContent=moves;
 startTimer(); winEl.classList.remove('show');
-draw(); haptic('shuffle');
+draw(); haptic
+run.startedFromShuffle = true;
+run.usedRestore = false;
+run.seed = Date.now(); // 單純做個識別碼
+  ('shuffle');
 }
 
 /* ====== 棋盤格線 ====== */
@@ -305,28 +321,29 @@ showWinCardAndRecord();
 }
 
 function showWinCardAndRecord(){
-const k = keyOf(currentTurtle, N);
-const r = records[k] || {};
-let broke = false;
-if(r.bestMoves==null || moves < r.bestMoves){ r.bestMoves = moves; broke = true; }
-if(r.bestTimeMs==null || elapsedMs < r.bestTimeMs){ r.bestTimeMs = elapsedMs; broke = true; }
-records[k] = r; saveRecords(); updateBestUI();
+  const eligible = run.startedFromShuffle && !run.usedRestore;
 
-const data = turtleData[currentTurtle];
-const extra = broke ? '<br><strong>🎉 刷新歷史最佳！</strong>' : '';
-winEl.innerHTML = `
-<div class="card" role="dialog" aria-label="完成解說卡">
-<img src="${data.infoImg}" alt="${data.title}" onerror="this.src='${data.img}'">
-<h2>${data.title}</h2>
-<p style="text-align:left">${data.desc}</p>
-<p class="small">本局步數：${movesEl.textContent}｜用時：${timeEl.textContent}${extra}</p>
-<p class="small" style="margin-top:6px">
-資料來源：海洋保育署、IUCN（國際自然保護聯盟）、NOAA Photo Library 等。<br>
-※ 本遊戲內容僅供教育推廣參考，物種資訊可能隨研究更新。
-</p>
-<button onclick="document.getElementById('win').classList.remove('show')">關閉</button>
-</div>`;
-winEl.classList.add('show');
+  if (eligible) {
+    const k = `${currentTurtle}__${N}`;
+    const r = records[k] || {};
+    let broke = false;
+    if(r.bestMoves==null || moves < r.bestMoves){ r.bestMoves = moves; broke = true; }
+    if(r.bestTimeMs==null || elapsedMs < r.bestTimeMs){ r.bestTimeMs = elapsedMs; broke = true; }
+    records[k] = r; saveRecords(); updateBestUI();
+  }
+
+  const data = turtleData[currentTurtle];
+  const extra = eligible ? '' : '<br><em style="color:#888">（此局含還原／非新局，不列入最佳紀錄）</em>';
+
+  winEl.innerHTML = `
+    <div class="card" role="dialog" aria-label="完成解說卡">
+      <img src="${data.infoImg}" alt="${data.title}" onerror="this.src='${data.img}'">
+      <h2>${data.title}</h2>
+      <p style="text-align:left">${data.desc}</p>
+      <p class="small">本局步數：${movesEl.textContent}｜用時：${timeEl.textContent}${extra}</p>
+      <button onclick="document.getElementById('win').classList.remove('show')">關閉</button>
+    </div>`;
+  winEl.classList.add('show');
 }
 
 /* ====== 尺寸切換與事件 ====== */
@@ -342,12 +359,15 @@ updateBestUI();
 
 document.getElementById('shuffle').addEventListener('click', shuffle);
 document.getElementById('reset').addEventListener('click', ()=>{
-tiles = Array.from({length: total}, (_,i)=>i);
-moves = 0; movesEl.textContent = moves;
-stopTimer(); elapsedMs = 0; timeEl.textContent='00:00.0';
-draw();
-});
+  tiles = Array.from({length: total}, (_,i)=>i);
+  moves = 0; movesEl.textContent = moves;
+  stopTimer(); elapsedMs = 0; timeEl.textContent='00:00.0';
+  draw();
 
+  // ★ 還原之後，這一局不列入最佳紀錄
+  run.startedFromShuffle = false;
+  run.usedRestore = true;
+});
 document.querySelectorAll('.sizeBtn').forEach(btn=>{
 btn.addEventListener('click', ()=> changeSize(Number(btn.dataset.n)));
 });
