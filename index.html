@@ -113,16 +113,22 @@ let moves = 0, timer = null, startTime = null, elapsedMs = 0;
 let isNewGame = true;
 
 function clearCurrentRecord() {
-  const turtle = document.querySelector('#turtleSelect').value; // 你選的海龜
-  const size = currentSize; // 你目前的格子數，像 "3x3"
-  
-  localStorage.removeItem(`bestSteps_${turtle}_${size}`);
-  localStorage.removeItem(`bestTime_${turtle}_${size}`);
-  
-  alert(`${turtle} ${size} 的最佳紀錄已清除`);
-  location.reload();
+  // 你程式裡已有的兩個變數：currentTurtle（下拉選擇值），N（2/3/4）
+  const key = `${currentTurtle}__${N}`;
+  const STORE_KEY = 'turtle_puzzle_records_v2'; // 你的程式用的 key
+
+  const store = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+  if (store[key]) {
+    delete store[key];
+    localStorage.setItem(STORE_KEY, JSON.stringify(store));
+    // 立刻把 UI 清空
+    document.getElementById('bestMoves').textContent = '—';
+    document.getElementById('bestTime').textContent  = '—';
+    alert(`已清除「${currentTurtle}」${N}×${N} 的最佳紀錄`);
+  } else {
+    alert('目前這一關沒有已儲存的最佳紀錄');
+  }
 }
-  
 function reset() {
   // 重開一局
   isNewGame = true;
