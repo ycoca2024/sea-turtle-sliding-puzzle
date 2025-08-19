@@ -82,13 +82,13 @@ transition:transform .12s ease;will-change:transform;
 
   <div class="subtitle">
     選擇海龜種類：
-    <select id="turtleSelect" aria-label="選擇海龜種類">
-      <option value="leatherback>革龜</option>
-      <option value="green">綠蠵龜</option>
-      <option value="olive">欖蠵龜</option>
-      <option value="hawksbill">玳瑁</option>
-      <option value="loggerhead">赤蠵龜</option>
-    </select>
+  <select id="turtleSelect" aria-label="選擇海龜種類">
+  <option value="leatherback">革龜</option>
+  <option value="green">綠蠵龜</option>
+  <option value="olive">欖蠵龜</option>
+  <option value="hawksbill">玳瑁</option>
+  <option value="loggerhead">赤蠵龜</option>
+</select>
   </div>
 
   <div class="subtitle">點擊或觸控相鄰空格的拼圖塊，使圖片還原。</div>
@@ -190,11 +190,11 @@ transition:transform .12s ease;will-change:transform;
    物種資料（主圖名即可；infoImg 會自動保底為主圖）
 ===================== */
 const turtleData = {
-  leatherback: { img: './leatherback.jpg', title: '革龜（Dermochelys coriacea）', desc: '世界上最大的海龜，體長常見 1.5–2.0 公尺以上、體重可逾 500–900 公斤。背甲無硬鱗，為革質外皮覆蓋骨板而得名。台灣曾於東部外海、澎湖、東沙海域有紀錄。', infoImg: '' },
-  green:       { img: './green.jpg',       title: '綠蠵龜（Chelonia mydas）', desc: '成龜以海草、海藻為主食，體色偏綠。台灣常見於蘭嶼、綠島與墾丁海域，亦有上岸產卵紀錄點。', infoImg: '' },
-  olive:       { img: './olive.jpg',       title: '欖蠵龜（Lepidochelys olivacea）', desc: '體型較小，背甲橄欖綠色，常見於熱帶及亞熱帶沿海。台灣海域偶有出現紀錄。', infoImg: '' },
-  hawksbill:   { img: './hawksbill.jpg',   title: '玳瑁（Eretmochelys imbricata）', desc: '背甲鱗片重疊、龜甲邊緣具鋸齒，常活動於珊瑚礁。台灣南部及離島珊瑚礁區較易見。', infoImg: '' },
-  loggerhead:  { img: './loggerhead.jpg',  title: '赤蠵龜（Caretta caretta）', desc: '頭部寬大、背甲紅褐色，偏好硬殼無脊椎動物。台灣周邊海域有洄游與偶見紀錄。', infoImg: '' }
+  leatherback: { img: './leatherback.jpg', title:'革龜（Dermochelys coriacea）', desc:'…', infoImg: './leatherback.jpg' },
+  green:       { img: './green.jpg',       title:'綠蠵龜（Chelonia mydas）',     desc:'…', infoImg: './green.jpg' },
+  olive:       { img: './olive.jpg',       title:'欖蠵龜（Lepidochelys olivacea）', desc:'…', infoImg: './olive.jpg' },
+  hawksbill:   { img: './hawksbill.jpg',   title:'玳瑁（Eretmochelys imbricata）', desc:'…', infoImg: './hawksbill.jpg' },
+  loggerhead:  { img: './loggerhead.jpg',  title:'赤蠵龜（Caretta caretta）',     desc:'…', infoImg: './loggerhead.jpg' }
 };
 // 直接把解析結果指定為檔名本身（跳過探測）
 Object.keys(turtleData).forEach(k=>{
@@ -292,10 +292,26 @@ function formatMs(ms){
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${ds}`;
 }
 function setBoardAspect(src){
-  if(!src) return;
+  // 先給 1:1，避免等圖時高度為 0
+  board.style.aspectRatio = '1 / 1';
+
+  let fired = false;
   const img = new Image();
-  img.onload = ()=>{ board.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`; draw(); };
-  img.src = src;
+  img.onload = () => {
+    fired = true;
+    // 成功才用真實比例；並重畫
+    board.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+    draw();
+  };
+  img.onerror = () => {
+    // 載圖失敗也直接畫（用預設 1:1）
+    if (!fired) { fired = true; draw(); }
+  };
+  // 加上版本參數，避免 GitHub Pages 舊快取
+  img.src = src + '?v=2';
+
+  // 保底：800ms 還沒 fired 就強制畫
+  setTimeout(() => { if (!fired) { fired = true; draw(); } }, 800);
 }
 
 /* Haptics */
@@ -376,8 +392,8 @@ function draw(){
   board.querySelectorAll('.tile').forEach(t=>t.remove());
   const bw = board.clientWidth, bh = board.clientHeight;
   const cellX = bw/N, cellY = bh/N;
-  const bgSrc = turtleData[currentTurtle]._imgResolved || turtleData[currentTurtle].img;
-tile.style.backgroundImage = `url('${bgSrc}')`;
+ const bgSrc = turtleData[currentTurtle].img + '?v=2';
+tile.style.backgroundImage = `url("${bgSrc}")`;
 
   tiles.forEach((val, idx)=>{
     const {x,y} = p2xy(idx);
@@ -493,9 +509,9 @@ document.querySelectorAll('.sizeBtn').forEach(btn=>{
   btn.addEventListener('click', ()=> changeSize(Number(btn.dataset.n)));
 });
 
-selectEl.addEventListener('change', e=>{
-  currentTurtle = e.target.value;
-  setBoardAspect(turtleSrc(currentTurtle));
+ selectEl.addEventListener('change', e=>{
+  currentTurtle = e.target.value; // ← 這裡拿到的是 key
+  setBoardAspect(turtleData[currentTurtle].img);
   shuffle();
   updateBestUI();
 });
@@ -508,14 +524,11 @@ toggleBtn.addEventListener('click', ()=>{
   toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
 });
 
-window.addEventListener('resize', draw);
-
 /* 初始化 */
-window.addEventListener('DOMContentLoaded', ()=>{
-  resolveAllTurtleImages().then(()=>{
-    updateBestUI();
-    shuffle();
-  });
+window.addEventListener('DOMContentLoaded', () => {
+  updateBestUI();
+  setBoardAspect(turtleData[currentTurtle].img); // 先設定比例（會觸發 draw）
+  shuffle();                                      // 再洗牌 → tiles 一定會生成
 });
 </script>
 
