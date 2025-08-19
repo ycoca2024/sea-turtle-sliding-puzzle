@@ -413,7 +413,9 @@ if(tiles.every((v,i)=>v===i)){
 stopTimer();
 winSound.currentTime = 0; winSound.play().catch(()=>{});
 haptic('win');
+  tryHapticWin(); // ★ 新增：再給一次觸覺（Android 有感）
 showWinCardAndRecord();
+    onGameSolved(turtleData[currentTurtle].infoImg); // ★ 新增：顯示解說＋解鎖拍照}
 }
 }
 }
