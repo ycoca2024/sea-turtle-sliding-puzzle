@@ -411,17 +411,16 @@ moves++; movesEl.textContent = moves;
 draw(); haptic('move');
 if (tiles.every((v,i)=>v===i)) {
   stopTimer();
-  winSound.currentTime = 0;
-  winSound.play().catch(()=>{});
-  haptic('win');
-  tryHapticWin();                 // ★ 再給一次觸覺（Android 有感）
+  winSound.currentTime = 0; winSound.play().catch(()=>{});
+  haptic('win');           // 原本就有
+  tryHapticWin();          // ★ 新增：再觸發一次（Android 上更有感）
 
   showWinCardAndRecord();
 
-  // ★ 一定會有解說圖：先拿 infoImg，沒有就退回拼圖原圖
+  // ★ 一定有圖可用：先用 infoImg，沒有就退回主圖 img
   const data = turtleData[currentTurtle] || {};
   const explainUrl = data.infoImg || data.img;
-  onGameSolved(explainUrl);
+  onGameSolved(explainUrl || data.img); // ★ 傳入保底路徑
 }
 }
 }
@@ -628,22 +627,32 @@ shuffle();
 <script>
 /* === A. 統一過關入口（保證會看到解說＋出現拍照按鈕） === */
 function onGameSolved(explainImageUrl){
-  // 震動保底（Android）
-  tryHapticWin();
+  tryHapticWin(); // 保底震動（iOS 不支援 vibrate 屬正常）
 
-  // 顯示解說
-  const url = explainImageUrl || '';
   const img = document.getElementById('expImg');
-  img.src = url;
-  img.onerror = ()=>{ // 若沒有 *_info.jpg 就退回拼圖主圖
-    const data = (window.turtleData && window.turtleData[window.currentTurtle]) || {};
-    img.src = data.img || '';
+  const fallback = (window.turtleData && window.turtleData[window.currentTurtle])
+                   ? window.turtleData[window.currentTurtle].img : '';
+
+  // 先清空再設 src，避免舊錯誤殘留
+  img.removeAttribute('src');
+  // 先掛錯誤處理：失敗就退回主圖；再失敗就顯示文字
+  img.onerror = ()=>{
+    if (img.dataset.triedFallback !== '1' && fallback){
+      img.dataset.triedFallback = '1';
+      img.src = fallback;           // 第一次失敗 → 用主圖
+    } else {
+      img.alt = '（本物種暫無解說圖）';
+      img.style.minHeight = '200px';
+    }
   };
+  img.src = explainImageUrl || fallback;
+
+  // 開啟解說視窗
   const exp = document.getElementById('exp');
   exp.style.display = 'block';
   document.body.style.overflow = 'hidden';
 
-  // 2 秒後浮出右下拍照 FAB
+  // 2 秒後浮出右下拍照鈕
   setTimeout(()=> document.getElementById('photoFab').classList.add('show'), 2000);
 }
 
@@ -673,7 +682,7 @@ function replayLevel(){
 }
 
 /* === D. 拍照視窗 === */
-const FRAMES = { patrol:'frame_patrol.jpg', coast:'frame_coast.jpg' };
+const FRAMES = { patrol:/.巡查員.png', coast:'/.海巡.png' };
 const pb = { video:null, canvas:null, ctx:null, stream:null, usingUpload:false, tpl:'patrol', W:900, H:1200, frameCanvas:null, _smallJpg:null };
 
 function openPhotoBooth(){
