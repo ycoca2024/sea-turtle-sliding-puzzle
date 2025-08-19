@@ -409,13 +409,20 @@ if(Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1){
 [tiles[e], tiles[idx]] = [tiles[idx], tiles[e]];
 moves++; movesEl.textContent = moves;
 draw(); haptic('move');
-if(tiles.every((v,i)=>v===i)){
-stopTimer();
-winSound.currentTime = 0; winSound.play().catch(()=>{});
-haptic('win');
-  tryHapticWin(); // ★ 新增：再給一次觸覺（Android 有感）
-showWinCardAndRecord();
-    onGameSolved(turtleData[currentTurtle].infoImg); // ★ 新增：顯示解說＋解鎖拍照}
+if (tiles.every((v,i)=>v===i)) {
+  stopTimer();
+  winSound.currentTime = 0;
+  winSound.play().catch(()=>{});
+  haptic('win');
+  tryHapticWin();                 // ★ 再給一次觸覺（Android 有感）
+
+  showWinCardAndRecord();
+
+  // ★ 一定會有解說圖：先拿 infoImg，沒有就退回拼圖原圖
+  const data = turtleData[currentTurtle] || {};
+  const explainUrl = data.infoImg || data.img;
+  onGameSolved(explainUrl);
+}
 }
 }
 }
@@ -519,14 +526,28 @@ updateBestUI();
 shuffle();
 })();
 </script>
-  <!-- ===== 拍照＋模板＋QR 模組 ===== -->
+<!-- ===== 解說＋震動保底＋拍照(2模板)＋QR 整合模組 ===== -->
 <style>
+  /* 解說視窗 */
+  .exp-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:8888}
+  .exp-wrap{position:absolute;inset:0;margin:auto;max-width:min(96vw,980px);background:#0b2230;border-radius:14px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,.35)}
+  .exp-head{display:flex;justify-content:space-between;align-items:center;background:#0f2e40;color:#fff;padding:10px 14px}
+  .exp-body{padding:10px;background:#0b2230}
+  .exp-body img{display:block;width:100%;height:auto;border-radius:10px;background:#001}
+  .exp-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;padding:10px}
+  .btn{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;color:#fff;background:#184a67}
+  .btn.secondary{background:#254b5a}
+  .cta-fab{position:fixed;right:18px;bottom:18px;z-index:8890;border:0;border-radius:999px;padding:14px 18px;font-size:16px;background:#2aa2ff;color:#072233;box-shadow:0 6px 24px rgba(0,0,0,.35);display:none}
+  .cta-fab.show{display:inline-flex;align-items:center;gap:8px}
+  .cta-fab.pulse{transform:scale(1.06);transition:.15s}
+
+  /* 拍照視窗 */
   .pb-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:9999}
   .pb-wrap{position:absolute;inset:0;margin:auto;background:#0b2230;color:#fff;max-width:min(92vw,880px);border-radius:14px;box-shadow:0 10px 50px rgba(0,0,0,.35);overflow:hidden}
   .pb-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f2e40}
   .pb-head b{font-size:18px}
   .pb-close{background:#173d54;border:0;color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
-  .pb-body{display:grid;grid-template-columns:1fr 300px;gap:12px; padding:12px}
+  .pb-body{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px}
   .pb-left{display:grid;gap:8px;align-items:center;justify-items:center}
   .pb-cam{background:#000;display:grid;place-items:center;width:100%;aspect-ratio:3/4;border-radius:10px;overflow:hidden}
   .pb-cam video,.pb-cam img{width:100%;height:100%;object-fit:cover}
@@ -537,11 +558,30 @@ shuffle();
   .pb-right button[disabled]{opacity:.6;cursor:not-allowed}
   .pb-right input[type="file"]{display:none}
   .pb-txt{background:#0f2e40;border-radius:10px;padding:10px;font-size:14px;line-height:1.45}
-  .pb-qr{display:none; background:#0f2e40; border-radius:10px; padding:10px; text-align:center}
-  .pb-qr img{max-width:100%; height:auto; display:block; margin:8px auto}
+  .pb-qr{display:none;background:#0f2e40;border-radius:10px;padding:10px;text-align:center}
+  .pb-qr img{max-width:100%;height:auto;display:block;margin:8px auto}
   @media (max-width:900px){.pb-body{grid-template-columns:1fr}}
 </style>
 
+<!-- 解說視窗（頁面上已經有就保留；沒有就這段會用到） -->
+<div id="exp" class="exp-backdrop" role="dialog" aria-modal="true" aria-label="海龜解說">
+  <div class="exp-wrap">
+    <div class="exp-head">
+      <b>海龜解說</b>
+      <button class="btn secondary" onclick="closeExplanation()">關閉</button>
+    </div>
+    <div class="exp-body">
+      <img id="expImg" alt="海龜解說圖">
+    </div>
+    <div class="exp-actions">
+      <button class="btn secondary" onclick="replayLevel()">再玩一次</button>
+      <button class="btn" onclick="openPhotoBooth()">拍照留念</button>
+    </div>
+  </div>
+</div>
+<button id="photoFab" class="cta-fab" onclick="openPhotoBooth()" aria-label="拍照留念">📷 拍照留念</button>
+
+<!-- 拍照視窗 -->
 <div class="pb-backdrop" id="pb">
   <div class="pb-wrap">
     <div class="pb-head">
@@ -562,56 +602,83 @@ shuffle();
           <label for="pbFile">從相簿選照片</label>
           <input id="pbFile" type="file" accept="image/*" />
         </div>
-
         <div class="row">
           <button data-tpl="patrol" class="tplBtn">套用：巡查員</button>
           <button data-tpl="coast" class="tplBtn">套用：海巡</button>
         </div>
-
         <div class="row">
           <button id="pbSnapBtn" disabled>拍照/合成</button>
-          <a id="pbDl" download="海龜華容道_留念.jpg">
-            <button id="pbDlBtn" disabled>下載圖片</button>
-          </a>
+          <a id="pbDl" download="海龜華容道_留念.jpg"><button id="pbDlBtn" disabled>下載圖片</button></a>
         </div>
-
         <div class="row">
           <button id="pbShareBtn" disabled>分享（行動裝置）</button>
           <button id="pbQrBtn" disabled>產生 QR</button>
         </div>
-
         <div id="pbQrBox" class="pb-qr">
           <div>掃描下載（若掃描器不支援 data: 連結，請改用下載/分享）</div>
           <img id="pbQrImg" alt="QR Code">
           <div id="pbQrHint" style="font-size:12px;opacity:.8"></div>
         </div>
-
-        <div class="pb-txt">
-          使用方式：1) 開相機或選相簿 → 2) 選模板（巡查員/海巡）→ 3) 按「拍照/合成」→ 4) 下載 / 分享 / QR。<br>
-          提醒：iOS Safari 不支援震動；QR 最多約 4,296 字元，超過會提示改用下載/分享。
-        </div>
+        <div class="pb-txt">流程：開相機/選照片 → 選模板 → 拍照合成 → 下載 / 分享 / 產生 QR。<br>iOS Safari 不支援震動；QR 容量有限。</div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-/* ===== 參數：兩張模板圖片（放在與 index.html 同一層） ===== */
-const FRAMES = {
-  patrol: 'frame_patrol.jpg', // 你提供：中間那張
-  coast:  'frame_coast.jpg'   // 你提供：左下那張
-};
+/* === A. 統一過關入口（保證會看到解說＋出現拍照按鈕） === */
+function onGameSolved(explainImageUrl){
+  // 震動保底（Android）
+  tryHapticWin();
 
-/* ===== 狀態 ===== */
-const pb = {
-  video:null, canvas:null, ctx:null, stream:null,
-  usingUpload:false, tpl:'patrol',
-  W:900, H:1200, // 3:4
-  frameCanvas:null // 把白臉洞轉透明後的畫布快取
-};
+  // 顯示解說
+  const url = explainImageUrl || '';
+  const img = document.getElementById('expImg');
+  img.src = url;
+  img.onerror = ()=>{ // 若沒有 *_info.jpg 就退回拼圖主圖
+    const data = (window.turtleData && window.turtleData[window.currentTurtle]) || {};
+    img.src = data.img || '';
+  };
+  const exp = document.getElementById('exp');
+  exp.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  // 2 秒後浮出右下拍照 FAB
+  setTimeout(()=> document.getElementById('photoFab').classList.add('show'), 2000);
+}
+
+/* === B. 震動／觸覺（iOS Safari 本來就不支援） === */
+function tryHapticWin(){
+  try {
+    if ('vibrate' in navigator) {
+      navigator.vibrate([30, 50, 30]);
+    } else {
+      // 視覺替代：讓 FAB 短暫跳動
+      const fab = document.getElementById('photoFab');
+      if (fab) { fab.classList.add('pulse'); setTimeout(()=>fab.classList.remove('pulse'), 800); }
+    }
+  } catch(e){}
+}
+
+/* === C. 解說視窗關閉與再玩一次（鉤回你的 reset） === */
+function closeExplanation(){
+  const el = document.getElementById('exp');
+  el.style.display = 'none';
+  document.body.style.overflow = '';
+  document.getElementById('photoFab').classList.remove('show');
+}
+function replayLevel(){
+  closeExplanation();
+  // TODO: 呼叫你的 reset/replay，例如： resetGame();
+}
+
+/* === D. 拍照視窗 === */
+const FRAMES = { patrol:'frame_patrol.jpg', coast:'frame_coast.jpg' };
+const pb = { video:null, canvas:null, ctx:null, stream:null, usingUpload:false, tpl:'patrol', W:900, H:1200, frameCanvas:null, _smallJpg:null };
 
 function openPhotoBooth(){
   const el = document.getElementById('pb');
+  if (!el){ alert('拍照模組未載入'); return; }
   el.style.display = 'block';
   document.body.style.overflow = 'hidden';
 }
@@ -626,13 +693,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
   pb.video = document.getElementById('pbVideo');
   pb.canvas = document.getElementById('pbCanvas');
   pb.ctx = pb.canvas.getContext('2d', { willReadFrequently:true });
-
   document.getElementById('pbUseCamBtn').addEventListener('click', useCamera);
   document.getElementById('pbFile').addEventListener('change', handleFile);
   document.getElementById('pbSnapBtn').addEventListener('click', doSnapshot);
   document.getElementById('pbQrBtn').addEventListener('click', makeQR);
   document.getElementById('pbShareBtn').addEventListener('click', webShare);
-
   document.querySelectorAll('.tplBtn').forEach(btn=>{
     btn.addEventListener('click', async (e)=>{
       document.querySelectorAll('.tplBtn').forEach(b=>b.style.outline='');
@@ -641,27 +706,19 @@ window.addEventListener('DOMContentLoaded', ()=>{
       pb.frameCanvas = await loadFrameCanvas(pb.tpl);
     });
   });
-
-  // 預設載入第一個模板
   loadFrameCanvas(pb.tpl).then(fc => pb.frameCanvas = fc);
 });
 
-/* ===== 相機 / 相簿 ===== */
+/* 相機 / 相簿 */
 async function useCamera(){
   try{
-    stopCam();
-    pb.usingUpload = false;
-    hideUploadPreview();
-    pb.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', aspectRatio: 3/4 }});
+    stopCam(); pb.usingUpload=false; hideUploadPreview();
+    pb.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', aspectRatio:3/4 }});
     pb.video.srcObject = pb.stream;
     document.getElementById('pbSnapBtn').disabled = false;
-  }catch(err){
-    alert('相機無法使用，請改用「從相簿選照片」。\\n' + err.message);
-  }
+  }catch(err){ alert('相機無法使用，請改用「從相簿選照片」。\\n' + err.message); }
 }
-function stopCam(){
-  if (pb.stream){ pb.stream.getTracks().forEach(t=>t.stop()); pb.stream=null; }
-}
+function stopCam(){ if (pb.stream){ pb.stream.getTracks().forEach(t=>t.stop()); pb.stream=null; } }
 function handleFile(e){
   const file = e.target.files?.[0]; if(!file) return;
   stopCam(); pb.usingUpload = true;
@@ -674,70 +731,51 @@ function handleFile(e){
 }
 function hideUploadPreview(){ const img = document.getElementById('pbUploadPreview'); img.style.display='none'; pb.video.style.display='block'; }
 
-/* ===== 讀入模板，將白色區域轉透明（做成遮罩） ===== */
+/* 模板：將近白色像素變透明（挖出臉孔） */
 async function loadFrameCanvas(kind){
   const src = FRAMES[kind];
-  const img = new Image(); img.crossOrigin = 'anonymous';
-  img.src = src;
-  await img.decode().catch(()=>{}); // 盡量等
-  const off = document.createElement('canvas');
-  off.width = pb.W; off.height = pb.H;
+  const img = new Image(); img.crossOrigin='anonymous'; img.src = src;
+  await img.decode().catch(()=>{});
+  const off = document.createElement('canvas'); off.width = pb.W; off.height = pb.H;
   const octx = off.getContext('2d');
-  // 先把模板拉到 900x1200
   octx.drawImage(img, 0, 0, off.width, off.height);
   try{
-    const data = octx.getImageData(0,0,off.width, off.height);
+    const data = octx.getImageData(0,0,off.width,off.height);
     const px = data.data;
-    // 讓接近白色(>245) 的像素透明：把白臉洞挖空
     for(let i=0;i<px.length;i+=4){
       const r=px[i], g=px[i+1], b=px[i+2];
-      if (r>245 && g>245 && b>245){ px[i+3]=0; }
+      if(r>245 && g>245 && b>245) px[i+3]=0; // 白→透明
     }
     octx.putImageData(data,0,0);
-  }catch(err){
-    console.warn('frame mask failed:', err);
-  }
+  }catch(e){}
   return off;
 }
 
-/* ===== 主流程：拍照/合成 ===== */
+/* 拍照合成 */
 function doSnapshot(){
   const ctx = pb.ctx, W=pb.W, H=pb.H;
   ctx.clearRect(0,0,W,H);
-
-  // 1) 先放相片（滿版等比置中裁切）
   if(pb.usingUpload){
-    const img = document.getElementById('pbUploadPreview');
-    drawCover(ctx, img, W, H);
+    const img = document.getElementById('pbUploadPreview'); drawCover(ctx,img,W,H);
   }else{
-    const v = pb.video;
-    drawCover(ctx, v, W, H);
+    const v = pb.video; drawCover(ctx,v,W,H);
   }
+  if(pb.frameCanvas) ctx.drawImage(pb.frameCanvas, 0, 0, W, H);
 
-  // 2) 疊上模板（已把白色洞轉透明）
-  if (pb.frameCanvas) ctx.drawImage(pb.frameCanvas, 0, 0, W, H);
-
-  // 3) 匯出（同時做一份 720x960 JPEG 以利 QR）
+   // 輸出：PNG 下載 + JPEG 縮圖給 QR
   const dataURLpng = pb.canvas.toDataURL('image/png');
   const smallJpg = canvasToScaledJpeg(pb.canvas, 720, 960, 0.7);
 
-  // 下載 & 分享 & QR 都就緒
-  const a = document.getElementById('pbDl');
-  a.href = dataURLpng;
+  const a = document.getElementById('pbDl'); a.href = dataURLpng;
   document.getElementById('pbDlBtn').disabled = false;
-
   document.getElementById('pbShareBtn').disabled = false;
   document.getElementById('pbQrBtn').disabled = false;
-  document.getElementById('pbQrBox').style.display = 'none'; // 重新產生前先收起
-
-  // 顯示預覽（可選）
+  document.getElementById('pbQrBox').style.display = 'none';
   pb.canvas.style.display = 'block';
-
-  // 把縮圖 dataURL 暫存起來給 QR 用
   pb._smallJpg = smallJpg;
 }
 
-/* 等比置中裁切 */
+/* 共同小工具 */
 function drawCover(ctx, src, W, H){
   const iw = src.videoWidth || src.naturalWidth;
   const ih = src.videoHeight || src.naturalHeight;
@@ -747,39 +785,30 @@ function drawCover(ctx, src, W, H){
   const dx = (W-dw)/2, dy = (H-dh)/2;
   ctx.drawImage(src, dx, dy, dw, dh);
 }
-
-/* 輸出縮圖 JPEG（用於 QR：縮到 720×960, q=0.7） */
 function canvasToScaledJpeg(srcCanvas, w, h, q){
   const c = document.createElement('canvas'); c.width=w; c.height=h;
-  const cx = c.getContext('2d'); cx.drawImage(srcCanvas,0,0,w,h);
+  c.getContext('2d').drawImage(srcCanvas,0,0,w,h);
   return c.toDataURL('image/jpeg', q);
 }
 
-/* 產生 QR（使用公開 QR API 產圖） */
+/* 產生 QR（以 data:URL 生成；過大會提示） */
 function makeQR(){
   const box = document.getElementById('pbQrBox');
   const img = document.getElementById('pbQrImg');
   const hint = document.getElementById('pbQrHint');
-
   const dataUrl = pb._smallJpg || pb.canvas.toDataURL('image/jpeg', 0.7);
-  const len = dataUrl.length;
-
-  // QR 安全上限大約 4,296 字元；留點餘裕
-  if (len > 3800){
+  if (dataUrl.length > 3800){
     box.style.display='block';
-    img.src = '';
-    hint.textContent = '圖片過大，QR 無法容納。請改用「下載」或「分享」。';
+    img.src=''; hint.textContent='圖片過大，QR 無法容納。請改用「下載」或「分享」。';
     return;
   }
-
-  // 用第三方生成 QR 圖（需要網路）
-  const api = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=1&data=';
+  const api='https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=1&data=';
   img.src = api + encodeURIComponent(dataUrl);
-  hint.textContent = '若掃描器顯示無法開啟，請改用「下載」或「分享」。';
+  hint.textContent='若掃描器無法開啟，請改用下載/分享。';
   box.style.display='block';
 }
 
-/* 行動裝置分享 */
+/* 分享（行動裝置） */
 async function webShare(){
   try{
     if (navigator.canShare){
@@ -789,10 +818,9 @@ async function webShare(){
     }else{
       alert('此裝置/瀏覽器不支援 Web Share，請改用「下載」或 QR。');
     }
-  }catch(e){ console.warn('share error', e); }
+  }catch(e){}
 }
 </script>
-<!-- ===== 模組結束 ===== -->
 </body>
 </html>
 
