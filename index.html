@@ -388,7 +388,8 @@ tile.className = 'tile' + (val===emptyGoal ? ' empty':'');
 tile.style.width = `${cellX - 4}px`;
 tile.style.height = `${cellY - 4}px`;
 tile.style.transform = `translate(${x*cellX + 2}px, ${y*cellY + 2}px)`;
-tile.style.backgroundImage = `url('${turtleData[currentTurtle].img}')`;
+  // 原本： tile.style.backgroundImage = `url('${turtleData[currentTurtle].img}')`;
+tile.style.backgroundImage = `url('${turtleSrc(currentTurtle)}')`;
 tile.style.backgroundSize = `${N*100}% ${N*100}%`;
 const bx = (100/(N-1)) * p2xy(val).x;
 const by = (100/(N-1)) * p2xy(val).y;
@@ -412,15 +413,13 @@ draw(); haptic('move');
 if (tiles.every((v,i)=>v===i)) {
   stopTimer();
   winSound.currentTime = 0; winSound.play().catch(()=>{});
-  haptic('win');           // 原本就有
-  tryHapticWin();          // ★ 新增：再觸發一次（Android 上更有感）
+  haptic('win');          // 你原本有的
+  tryHapticWin();         // ★ 再震一次（Android 有感；iOS 不支援）
 
   showWinCardAndRecord();
 
-  // ★ 一定有圖可用：先用 infoImg，沒有就退回主圖 img
-  const data = turtleData[currentTurtle] || {};
-  const explainUrl = data.infoImg || data.img;
-  onGameSolved(explainUrl || data.img); // ★ 傳入保底路徑
+  // ★ 解說圖保底：沒有 *_info 就用主圖
+  onGameSolved(turtleInfoSrc(currentTurtle));
 }
 }
 }
@@ -525,6 +524,48 @@ updateBestUI();
 shuffle();
 })();
 </script>
+  <script>
+const CANDIDATE_DIRS = ['./', './assets/', './img/'];
+const CANDIDATE_EXTS = ['.jpg', '.png', '.jpeg', '.webp'];
+
+function probeImage(basenameOrPath){
+  const list = [];
+  if (/\.(jpg|jpeg|png|webp)$/i.test(basenameOrPath)) {
+    list.push(basenameOrPath);
+    const base = basenameOrPath.replace(/\.(jpg|jpeg|png|webp)$/i,'');
+    for (const ext of CANDIDATE_EXTS) list.push(base + ext);
+  } else {
+    for (const dir of CANDIDATE_DIRS)
+      for (const ext of CANDIDATE_EXTS) list.push(dir + basenameOrPath + ext);
+  }
+  return new Promise(resolve=>{
+    let i=0; const img=new Image();
+    (function tryNext(){
+      if (i>=list.length) return resolve('');
+      const src=list[i++], test=new Image();
+      test.onload = ()=>resolve(src);
+      test.onerror= tryNext;
+      test.src = src;
+    })();
+  });
+}
+
+async function resolveAllTurtleImages(){
+  const keys = Object.keys(window.turtleData||{});
+  for (const k of keys){
+    const d = turtleData[k];
+    d._imgResolved  = await probeImage(d.img.replace(/\.(jpg|jpeg|png|webp)$/i,''));
+    if (d.infoImg) d._infoResolved = await probeImage(d.infoImg.replace(/\.(jpg|jpeg|png|webp)$/i,''));
+    if (!d._infoResolved) d._infoResolved = d._imgResolved;
+  }
+}
+function turtleSrc(key){ return (turtleData[key] && (turtleData[key]._imgResolved || turtleData[key].img)) || ''; }
+function turtleInfoSrc(key){
+  return (turtleData[key] && (turtleData[key]._infoResolved || turtleData[key]._imgResolved || turtleData[key].img)) || '';
+}
+
+window.addEventListener('DOMContentLoaded', resolveAllTurtleImages);
+</script>
 <!-- ===== 解說＋震動保底＋拍照(2模板)＋QR 整合模組 ===== -->
 <style>
   /* 解說視窗 */
@@ -625,37 +666,39 @@ shuffle();
 </div>
 
 <script>
+  function tryHapticWin(){
+  try{
+    if ('vibrate' in navigator) navigator.vibrate([30,50,30]);
+    else {
+      const fab = document.getElementById('photoFab');
+      if (fab){ fab.classList.add('pulse'); setTimeout(()=>fab.classList.remove('pulse'), 800); }
+    }
+  }catch(e){}
+}
 /* === A. 統一過關入口（保證會看到解說＋出現拍照按鈕） === */
 function onGameSolved(explainImageUrl){
-  tryHapticWin(); // 保底震動（iOS 不支援 vibrate 屬正常）
+  tryHapticWin(); // Android 震動；iOS Safari 本來不支援
 
   const img = document.getElementById('expImg');
-  const fallback = (window.turtleData && window.turtleData[window.currentTurtle])
-                   ? window.turtleData[window.currentTurtle].img : '';
-
-  // 先清空再設 src，避免舊錯誤殘留
-  img.removeAttribute('src');
-  // 先掛錯誤處理：失敗就退回主圖；再失敗就顯示文字
+  img.removeAttribute('src');     // 清上一次狀態
   img.onerror = ()=>{
+    const fallback = turtleSrc(window.currentTurtle);
     if (img.dataset.triedFallback !== '1' && fallback){
       img.dataset.triedFallback = '1';
-      img.src = fallback;           // 第一次失敗 → 用主圖
+      img.src = fallback;         // 第一次失敗 → 主圖
     } else {
       img.alt = '（本物種暫無解說圖）';
       img.style.minHeight = '200px';
     }
   };
-  img.src = explainImageUrl || fallback;
+  img.src = explainImageUrl || turtleSrc(window.currentTurtle);
 
-  // 開啟解說視窗
   const exp = document.getElementById('exp');
   exp.style.display = 'block';
   document.body.style.overflow = 'hidden';
 
-  // 2 秒後浮出右下拍照鈕
   setTimeout(()=> document.getElementById('photoFab').classList.add('show'), 2000);
 }
-
 /* === B. 震動／觸覺（iOS Safari 本來就不支援） === */
 function tryHapticWin(){
   try {
@@ -682,7 +725,11 @@ function replayLevel(){
 }
 
 /* === D. 拍照視窗 === */
-const FRAMES = { patrol:/.巡查員.png', coast:'/.海巡.png' };
+/* 模板圖就放跟 index.html 同一層 */
+const FRAMES = {
+  patrol: './巡查員.png',
+  coast:  './海巡.png'
+};
 const pb = { video:null, canvas:null, ctx:null, stream:null, usingUpload:false, tpl:'patrol', W:900, H:1200, frameCanvas:null, _smallJpg:null };
 
 function openPhotoBooth(){
