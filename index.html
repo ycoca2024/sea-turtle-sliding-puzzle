@@ -77,47 +77,126 @@ transition:transform .12s ease;will-change:transform;
 </button>
 
 <script>
-/** 在「過關後」呼叫這個：先顯示你的解說圖，再引導拍照 **/
-function showExplanation(imageUrl){
-  renderExplanation(imageUrl);    // 繪出解說圖
-  // 3 秒後浮出右下角的拍照提示（不打擾閱讀）
-  setTimeout(()=> document.getElementById('photoFab').classList.add('show'), 3000);
+/* ====== 1) 統一過關入口：請在勝利時呼叫它 ====== */
+function onGameSolved(explainImageUrl){
+  console.log('[WIN] onGameSolved');
+  // 震動／觸覺（Android 有效；iOS Safari 不支援）
+  tryHapticWin();
+
+  // 顯示你的解說圖（若你已經有自己的 showExplanation，就用那個）
+  if (typeof showExplanation === 'function') {
+    showExplanation(explainImageUrl);
+  } else {
+    // 最小版：直接把圖塞到頁面（避免你還沒接到我的 exp 視窗元件時看不到）
+    ensureExpShell();
+    document.getElementById('expImg').src = explainImageUrl;
+    document.getElementById('exp').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  // 2 秒後浮出「拍照留念」大按鈕
+  ensurePhotoFab();
+  setTimeout(()=> document.getElementById('photoFab').classList.add('show'), 2000);
+
+  // （選用）若你想過關就直接彈出拍照視窗，把下面註解打開
+  // openPhotoBooth();
 }
 
-/** 你原有的過關判定：把 openPhotoBooth() 換成 showExplanation(url) **/
-/*
-if (isSolved) {
-  showExplanation('assets/explain/green_turtle.png');
+/* ====== 2) 震動／觸覺 ====== */
+function tryHapticWin(){
+  try {
+    if ('vibrate' in navigator) {
+      // 短-長-短 節奏
+      navigator.vibrate([30, 50, 30]);
+      console.log('[HAPTIC] vibrate fired');
+    } else {
+      console.log('[HAPTIC] vibrate not supported (iOS Safari 常見)');
+      // iOS 視覺替代：讓右下拍照鈕做個小彈跳
+      const fab = document.getElementById('photoFab');
+      if (fab) {
+        fab.classList.add('pulse');
+        setTimeout(()=> fab.classList.remove('pulse'), 800);
+      }
+    }
+  } catch(e){ console.warn('Haptic error:', e); }
 }
-*/
 
-function renderExplanation(url){
-  const bd = document.getElementById('exp');
-  const img = document.getElementById('expImg');
-  img.src = url;
-  bd.style.display = 'block';
-  document.body.style.overflow = 'hidden';
+/* ====== 3) 確保拍照 FAB 與解說殼存在（避免你還沒貼我的樣板時出錯） ====== */
+function ensurePhotoFab(){
+  if (document.getElementById('photoFab')) return;
+  const fab = document.createElement('button');
+  fab.id = 'photoFab';
+  fab.className = 'cta-fab';
+  fab.textContent = '📷 拍照留念';
+  fab.onclick = () => {
+    console.log('[UI] FAB -> openPhotoBooth');
+    openPhotoBooth();
+  };
+  document.body.appendChild(fab);
+
+  // 必要 CSS（若你已把我給的 CSS 併進去了，這段可留著也可移除）
+  injectOnce('pb-fab-style', `
+    .cta-fab{position:fixed;right:18px;bottom:18px;z-index:9998;border:0;border-radius:999px;
+      padding:14px 18px;font-size:16px;background:#2aa2ff;color:#072233;box-shadow:0 6px 24px rgba(0,0,0,.35);display:none}
+    .cta-fab.show{display:inline-flex;align-items:center;gap:8px}
+    .cta-fab.pulse{transform:scale(1.06);transition:.15s}
+  `);
+}
+
+function ensureExpShell(){
+  if (document.getElementById('exp')) return;
+  const wrap = document.createElement('div');
+  wrap.id = 'exp';
+  wrap.className = 'exp-backdrop';
+  wrap.innerHTML = `
+    <div class="exp-wrap">
+      <div class="exp-head">
+        <b>海龜解說</b>
+        <button class="btn secondary" onclick="closeExplanation()">關閉</button>
+      </div>
+      <div class="exp-body"><img id="expImg" alt="海龜解說圖"></div>
+      <div class="exp-actions">
+        <button class="btn secondary" onclick="replayLevel()">再玩一次</button>
+        <button class="btn" onclick="openPhotoBooth()">拍照留念</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+
+  injectOnce('exp-shell-style', `
+    .exp-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:8888}
+    .exp-wrap{position:absolute;inset:0;margin:auto;max-width:min(96vw,980px);background:#0b2230;border-radius:14px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,.35)}
+    .exp-head{display:flex;justify-content:space-between;align-items:center;background:#0f2e40;color:#fff;padding:10px 14px}
+    .exp-body{padding:10px;background:#0b2230}
+    .exp-body img{display:block;width:100%;height:auto;border-radius:10px;background:#001}
+    .exp-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;padding:10px}
+    .btn{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;color:#fff;background:#184a67}
+    .btn.secondary{background:#254b5a}
+  `);
 }
 
 function closeExplanation(){
-  document.getElementById('exp').style.display = 'none';
+  const el = document.getElementById('exp');
+  if (el) el.style.display = 'none';
   document.body.style.overflow = '';
-  // 關閉時順便把右下拍照鈕藏起來（避免殘留）
-  document.getElementById('photoFab').classList.remove('show');
+  const fab = document.getElementById('photoFab');
+  if (fab) fab.classList.remove('show');
 }
 
-/** 可替換成你遊戲的「再玩一次」流程 **/
 function replayLevel(){
   closeExplanation();
-  // resetGame(); // ← 你的重開函式
+  // TODO: 呼叫你的 reset/replay 函式，例如 resetGame();
 }
 
-/** 無障礙：按下 ESC 也能關掉解說 **/
-window.addEventListener('keydown', (e)=>{
-  if(e.key === 'Escape'){
-    const exp = document.getElementById('exp');
-    if(getComputedStyle(exp).display !== 'none') closeExplanation();
-  }
+/* 小工具：只注入一次 style */
+function injectOnce(id, css){
+  if (document.getElementById(id)) return;
+  const s = document.createElement('style');
+  s.id = id; s.textContent = css; document.head.appendChild(s);
+}
+
+/* ====== 4) 自我檢查：在 console 看 log ====== */
+window.addEventListener('DOMContentLoaded', ()=>{
+  console.log('[BOOT] ready. 等待 onGameSolved() 被呼叫。');
 });
 </script>
 </head>
