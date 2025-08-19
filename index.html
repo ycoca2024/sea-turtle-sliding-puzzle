@@ -15,19 +15,20 @@ select,button{background:#1f6f8b;color:#fff;border:none;padding:10px 14px;border
 select{appearance:none}
 button:hover{filter:brightness(1.1)}
 .stats{margin-left:auto;display:flex;gap:12px;align-items:center;font-variant-numeric:tabular-nums; flex-wrap:wrap}
-.board{width:min(92vw,720px);aspect-ratio:1/1;position:relative;border-radius:14px;background:#102534;
+.board{width:min(92vw,720px);position:relative;border-radius:14px;background:#102534;
 box-shadow:0 12px 36px rgba(0,0,0,.4);margin:10px auto;touch-action:manipulation;user-select:none;overflow:hidden}
+/* 重要：先給固定高度，避免高度為 0 時看不到圖 */
+.board{height: min(92vw,720px); aspect-ratio: 1/1;}
 .tile{
 position:absolute;background-size:cover;background-repeat:no-repeat;background-position:center;
 border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 6px 14px rgba(0,0,0,.35);
-transition:transform .12s ease;will-change:transform;
-}
+transition:transform .12s ease;will-change:transform;}
 .tile::after{content:"";position:absolute;inset:0;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
 .tile.empty{opacity:0;pointer-events:none}
 .gridlines{position:absolute;inset:0;border-radius:14px;pointer-events:none}
 .win{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.25);backdrop-filter:blur(2px);z-index:10;padding:12px;}
 .win.show{display:grid}
-.win .card{background:#fff;color:#123;padding:18px 22px;border-radius:12px;max-width:min(90vw,560px);max-height: calc(100% - 24px); overflow:auto; -webkit-overflow-scrolling:touch;}
+.win .card{background:#fff;color:#123;padding:18px 22px;border-radius:12px;max-width:min(90vw,560px);max-height: calc(100% - 24px); overflow:auto}
 .win .card img{max-width:100%;border-radius:8px;margin-bottom:10px;width:100%;height:auto;display:block}
 .win .card h2{margin:.2em 0 .4em;font-size:18px}
 .win .card p{margin:.3em 0 1em;line-height:1.5}
@@ -35,7 +36,7 @@ transition:transform .12s ease;will-change:transform;
 .sizes{display:flex;gap:6px;flex-wrap:wrap}
 .sizes button.active{background:#1aa37a}
 
-/* 解說圖視窗 */
+/* 解說視窗 + 拍照浮鈕 */
 .exp-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:8888}
 .exp-wrap{position:absolute;inset:0;margin:auto;max-width:min(96vw,980px);background:#0b2230;border-radius:14px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,.35)}
 .exp-head{display:flex;justify-content:space-between;align-items:center;background:#0f2e40;color:#fff;padding:10px 14px}
@@ -48,27 +49,22 @@ transition:transform .12s ease;will-change:transform;
 .cta-fab.show{display:inline-flex;align-items:center;gap:8px}
 .cta-fab.pulse{transform:scale(1.06);transition:.15s}
 
-/* 拍照視窗 */
-.pb-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:9999}
-.pb-wrap{position:absolute;inset:0;margin:auto;background:#0b2230;color:#fff;max-width:min(92vw,880px);border-radius:14px;box-shadow:0 10px 50px rgba(0,0,0,.35);overflow:hidden}
-.pb-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f2e40}
-.pb-head b{font-size:18px}
-.pb-close{background:#173d54;border:0;color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
-.pb-body{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px}
-.pb-left{display:grid;gap:8px;align-items:center;justify-items:center}
-.pb-cam{background:#000;display:grid;place-items:center;width:100%;aspect-ratio:3/4;border-radius:10px;overflow:hidden}
-.pb-cam video,.pb-cam img{width:100%;height:100%;object-fit:cover}
-.pb-canvas{display:none}
-.pb-right{display:grid;gap:10px}
-.pb-right .row{display:flex;gap:8px;flex-wrap:wrap}
-.pb-right button,.pb-right label{border:0;background:#184a67;color:#fff;border-radius:10px;padding:10px 12px;cursor:pointer}
-.pb-right button[disabled]{opacity:.6;cursor:not-allowed}
-.pb-right input[type="file"]{display:none}
-.pb-txt{background:#0f2e40;border-radius:10px;padding:10px;font-size:14px;line-height:1.45}
-.pb-qr{display:none;background:#0f2e40;border-radius:10px;padding:10px;text-align:center}
-.pb-qr img{max-width:100%;height:auto;display:block;margin:8px auto}
-@media (max-width:900px){.pb-body{grid-template-columns:1fr}}
-
+/* 拍照視窗（精簡版） */
+.pb{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:9999}
+.pb .box{position:absolute;inset:0;margin:auto;background:#0b2230;color:#fff;max-width:min(92vw,880px);border-radius:14px;box-shadow:0 10px 50px rgba(0,0,0,.35);overflow:hidden}
+.pb .head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f2e40}
+.pb .body{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px}
+.pb .cam{background:#000;display:grid;place-items:center;width:100%;aspect-ratio:3/4;border-radius:10px;overflow:hidden}
+.pb video,.pb img{width:100%;height:100%;object-fit:cover}
+.pb canvas{display:none}
+.pb .col{display:grid;gap:10px}
+.pb .row{display:flex;gap:8px;flex-wrap:wrap}
+.pb button,.pb label{border:0;background:#184a67;color:#fff;border-radius:10px;padding:10px 12px;cursor:pointer}
+.pb button[disabled]{opacity:.6;cursor:not-allowed}
+.pb input[type="file"]{display:none}
+.pb .qr{display:none;background:#0f2e40;border-radius:10px;padding:10px;text-align:center}
+.pb .qr img{max-width:100%;height:auto;display:block;margin:8px auto}
+@media (max-width:900px){.pb .body{grid-template-columns:1fr}}
 /* 手機上保證看得到清除鍵與統計列 */
 @media (max-width: 520px){
   #clearCurrent{ order: 98; width: 100%; }
@@ -82,13 +78,13 @@ transition:transform .12s ease;will-change:transform;
 
   <div class="subtitle">
     選擇海龜種類：
-  <select id="turtleSelect" aria-label="選擇海龜種類">
-  <option value="leatherback">革龜</option>
-  <option value="green">綠蠵龜</option>
-  <option value="olive">欖蠵龜</option>
-  <option value="hawksbill">玳瑁</option>
-  <option value="loggerhead">赤蠵龜</option>
-</select>
+    <select id="turtleSelect" aria-label="選擇海龜種類">
+      <option value="leatherback">革龜</option>
+      <option value="green">綠蠵龜</option>
+      <option value="olive">欖蠵龜</option>
+      <option value="hawksbill">玳瑁</option>
+      <option value="loggerhead">赤蠵龜</option>
+    </select>
   </div>
 
   <div class="subtitle">點擊或觸控相鄰空格的拼圖塊，使圖片還原。</div>
@@ -142,21 +138,21 @@ transition:transform .12s ease;will-change:transform;
 <button id="photoFab" class="cta-fab" onclick="openPhotoBooth()" aria-label="拍照留念">📷 拍照留念</button>
 
 <!-- 拍照視窗 -->
-<div class="pb-backdrop" id="pb">
-  <div class="pb-wrap">
-    <div class="pb-head">
+<div class="pb" id="pb">
+  <div class="box">
+    <div class="head">
       <b>海龜華容道｜拍照留念</b>
-      <button class="pb-close" onclick="closePhotoBooth()">關閉</button>
+      <button onclick="closePhotoBooth()">關閉</button>
     </div>
-    <div class="pb-body">
-      <div class="pb-left">
-        <div class="pb-cam">
+    <div class="body">
+      <div class="col">
+        <div class="cam">
           <video id="pbVideo" playsinline autoplay muted></video>
           <img id="pbUploadPreview" alt="" style="display:none"/>
         </div>
-        <canvas id="pbCanvas" class="pb-canvas" width="900" height="1200"></canvas>
+        <canvas id="pbCanvas" width="900" height="1200"></canvas>
       </div>
-      <div class="pb-right">
+      <div class="col">
         <div class="row">
           <button id="pbUseCamBtn">開啟相機</button>
           <label for="pbFile">從相簿選照片</label>
@@ -164,22 +160,24 @@ transition:transform .12s ease;will-change:transform;
         </div>
         <div class="row">
           <button data-tpl="patrol" class="tplBtn">套用：巡查員</button>
-          <button data-tpl="coast" class="tplBtn">套用：海巡</button>
+          <button data-tpl="coast"  class="tplBtn">套用：海巡</button>
         </div>
         <div class="row">
           <button id="pbSnapBtn" disabled>拍照/合成</button>
-          <a id="pbDl" download="海龜華容道_留念.jpg"><button id="pbDlBtn" disabled>下載圖片</button></a>
+          <a id="pbDl" download="海龜華容道_留念.png"><button id="pbDlBtn" disabled>下載圖片</button></a>
         </div>
         <div class="row">
           <button id="pbShareBtn" disabled>分享（行動裝置）</button>
           <button id="pbQrBtn" disabled>產生 QR</button>
         </div>
-        <div id="pbQrBox" class="pb-qr">
+        <div id="pbQrBox" class="qr">
           <div>掃描下載（若掃描器不支援 data: 連結，請改用下載/分享）</div>
           <img id="pbQrImg" alt="QR Code">
           <div id="pbQrHint" style="font-size:12px;opacity:.8"></div>
         </div>
-        <div class="pb-txt">流程：開相機/選照片 → 選模板 → 拍照合成 → 下載 / 分享 / 產生 QR。<br>iOS Safari 不支援震動；QR 容量有限。</div>
+        <div style="background:#0f2e40;border-radius:10px;padding:10px;font-size:13px;line-height:1.45">
+          流程：開相機/選照片 → 選模板 → 拍照合成 → 下載 / 分享 / 產生 QR。<br>iOS Safari 不支援震動；QR 容量有限。
+        </div>
       </div>
     </div>
   </div>
@@ -187,73 +185,22 @@ transition:transform .12s ease;will-change:transform;
 
 <script>
 /* =====================
-   物種資料（主圖名即可；infoImg 會自動保底為主圖）
+   物種資料（直接使用你的根目錄圖片）
 ===================== */
 const turtleData = {
-  leatherback: { img: './leatherback.jpg', title:'革龜（Dermochelys coriacea）', desc:'…', infoImg: './leatherback.jpg' },
-  green:       { img: './green.jpg',       title:'綠蠵龜（Chelonia mydas）',     desc:'…', infoImg: './green.jpg' },
-  olive:       { img: './olive.jpg',       title:'欖蠵龜（Lepidochelys olivacea）', desc:'…', infoImg: './olive.jpg' },
-  hawksbill:   { img: './hawksbill.jpg',   title:'玳瑁（Eretmochelys imbricata）', desc:'…', infoImg: './hawksbill.jpg' },
-  loggerhead:  { img: './loggerhead.jpg',  title:'赤蠵龜（Caretta caretta）',     desc:'…', infoImg: './loggerhead.jpg' }
+  leatherback: { img: './leatherback.jpg', title: '革龜（Dermochelys coriacea）', desc: '世界上最大的海龜…', infoImg: './leatherback.jpg' },
+  green:       { img: './green.jpg',       title: '綠蠵龜（Chelonia mydas）',     desc: '成龜以海草…',     infoImg: './green.jpg' },
+  olive:       { img: './olive.jpg',       title: '欖蠵龜（Lepidochelys olivacea）', desc: '體型較小…', infoImg: './olive.jpg' },
+  hawksbill:   { img: './hawksbill.jpg',   title: '玳瑁（Eretmochelys imbricata）', desc: '背甲鱗片重疊…', infoImg: './hawksbill.jpg' },
+  loggerhead:  { img: './loggerhead.jpg',  title: '赤蠵龜（Caretta caretta）',     desc: '頭部寬大…',     infoImg: './loggerhead.jpg' }
 };
-// 直接把解析結果指定為檔名本身（跳過探測）
-Object.keys(turtleData).forEach(k=>{
-  turtleData[k]._imgResolved = turtleData[k].img;
-  turtleData[k]._infoResolved = turtleData[k].infoImg || turtleData[k].img;
-});
-/* =====================
-   圖片自動尋路（資料夾＋副檔名自動探測）
-===================== */
-const CANDIDATE_DIRS = ['./', './assets/', './img/'];
-const CANDIDATE_EXTS = ['.jpg', '.png', '.jpeg', '.webp'];
 
-function probeImage(basenameOrPath){
-  const list = [];
-  if (/\.(jpg|jpeg|png|webp)$/i.test(basenameOrPath)) {
-    list.push(basenameOrPath);
-    const base = basenameOrPath.replace(/\.(jpg|jpeg|png|webp)$/i,'');
-    for (const ext of CANDIDATE_EXTS) list.push(base + ext);
-  } else {
-    for (const dir of CANDIDATE_DIRS)
-      for (const ext of CANDIDATE_EXTS) list.push(dir + basenameOrPath + ext);
-  }
-  return new Promise(resolve=>{
-    let i=0;
-    (function tryNext(){
-      if (i>=list.length) return resolve('');
-      const src=list[i++], test=new Image();
-      test.onload = ()=>resolve(src);
-      test.onerror= tryNext;
-      test.src = src;
-    })();
-  });
-}
-
-async function resolveAllTurtleImages(){
-  const keys = Object.keys(turtleData||{});
-  for (const k of keys){
-    const d = turtleData[k];
-    d._imgResolved  = await probeImage(d.img);
-    d._infoResolved = d.infoImg ? await probeImage(d.infoImg) : '';
-    if (!d._infoResolved) d._infoResolved = d._imgResolved; // 解說保底為主圖
-  }
-  // 初始化時以解析後圖檔設定版面比例
-  setBoardAspect(turtleSrc(currentTurtle));
-}
-function turtleSrc(key){ return (turtleData[key] && (turtleData[key]._imgResolved || turtleData[key].img)) || ''; }
-function turtleInfoSrc(key){ 
-  return (turtleData[key] && (turtleData[key]._infoResolved || turtleData[key]._imgResolved || turtleData[key].img)) || '';
-}
-
-/* =====================
-   遊戲主程式
-===================== */
 let N = 3, total = N*N, emptyGoal = total-1;
-let currentTurtle = './leatherback.jpg';
+let currentTurtle = 'leatherback';
 let tiles = [];
 let moves = 0, timer = null, startTime = null, elapsedMs = 0;
 
-// 記錄是否為「合法新局」
+// 紀錄合法新局
 const run = { startedFromShuffle:false, usedRestore:false, seed:0 };
 
 // DOM
@@ -286,32 +233,9 @@ function updateBestUI(){
 /* 工具 */
 const p2xy = p => ({ x:p%N, y:Math.floor(p/N) });
 const xy2p = (x,y) => y*N + x;
-
 function formatMs(ms){
   const m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000), ds = Math.floor((ms%1000)/100);
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${ds}`;
-}
-function setBoardAspect(src){
-  // 先給 1:1，避免等圖時高度為 0
-  board.style.aspectRatio = '1 / 1';
-
-  let fired = false;
-  const img = new Image();
-  img.onload = () => {
-    fired = true;
-    // 成功才用真實比例；並重畫
-    board.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
-    draw();
-  };
-  img.onerror = () => {
-    // 載圖失敗也直接畫（用預設 1:1）
-    if (!fired) { fired = true; draw(); }
-  };
-  // 加上版本參數，避免 GitHub Pages 舊快取
-  img.src = src + '?v=2';
-
-  // 保底：800ms 還沒 fired 就強制畫
-  setTimeout(() => { if (!fired) { fired = true; draw(); } }, 800);
 }
 
 /* Haptics */
@@ -387,13 +311,41 @@ function updateGridlines(){
   }
 }
 
+/* 重要：先畫、再調比例；高度為 0 時硬設 */
+function setBoardAspect(src){
+  const w = board.clientWidth || board.offsetWidth || 320;
+  board.style.height = w + 'px';
+  board.style.aspectRatio = '1 / 1';
+  draw(); // 先畫一次
+
+  const img = new Image();
+  let fired = false;
+  img.onload = ()=>{
+    fired = true;
+    board.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+    const ww = board.clientWidth || board.offsetWidth || w;
+    const hh = Math.round(ww * (img.naturalHeight / img.naturalWidth));
+    board.style.height = hh + 'px';
+    draw();
+  };
+  img.onerror = ()=>{ if(!fired){ fired = true; draw(); } };
+  img.src = src + '?v=4';
+  setTimeout(()=>{ if(!fired){ fired = true; draw(); } }, 800);
+}
+
 /* 繪製 */
 function draw(){
+  // 高度保底
+  if (board.clientHeight === 0) {
+    const w = board.clientWidth || board.offsetWidth || 320;
+    board.style.height = w + 'px';
+  }
+
   board.querySelectorAll('.tile').forEach(t=>t.remove());
-  const bw = board.clientWidth, bh = board.clientHeight;
+  const bw = board.clientWidth || board.offsetWidth;
+  const bh = board.clientHeight || bw;
   const cellX = bw/N, cellY = bh/N;
- const bgSrc = turtleData[currentTurtle].img + '?v=2';
-tile.style.backgroundImage = `url("${bgSrc}")`;
+  const bgSrc = turtleData[currentTurtle].img + '?v=4';
 
   tiles.forEach((val, idx)=>{
     const {x,y} = p2xy(idx);
@@ -402,7 +354,7 @@ tile.style.backgroundImage = `url("${bgSrc}")`;
     tile.style.width = `${cellX - 4}px`;
     tile.style.height = `${cellY - 4}px`;
     tile.style.transform = `translate(${x*cellX + 2}px, ${y*cellY + 2}px)`;
-    tile.style.backgroundImage = `url('${bgSrc}')`;
+    tile.style.backgroundImage = `url("${bgSrc}")`;
     tile.style.backgroundSize = `${N*100}% ${N*100}%`;
     const bx = (100/(N-1)) * p2xy(val).x;
     const by = (100/(N-1)) * p2xy(val).y;
@@ -427,13 +379,9 @@ function move(idx){
     if(tiles.every((v,i)=>v===i)){
       stopTimer();
       winSound.currentTime = 0; winSound.play().catch(()=>{});
-      haptic('win');
-      tryHapticWin(); // 再一次觸覺（Android有感；iOS無）
-
+      haptic('win'); tryHapticWin();
       showWinCardAndRecord();
-
-      // 解說圖保底：沒有 info 就用主圖
-      onGameSolved(turtleData[currentTurtle]._infoResolved || turtleData[currentTurtle].img);
+      onGameSolved(turtleData[currentTurtle].infoImg); // 解說圖（保底用主圖）
     }
   }
 }
@@ -487,48 +435,42 @@ function changeSize(n){
   document.querySelectorAll('.sizeBtn').forEach(btn=>{
     btn.classList.toggle('active', Number(btn.dataset.n)===N);
   });
- setBoardAspect(turtleData[currentTurtle]._imgResolved || turtleData[currentTurtle].img);
+  setBoardAspect(turtleData[currentTurtle].img);
   shuffle();
   updateBestUI();
 }
-
 document.getElementById('shuffle').addEventListener('click', shuffle);
-
 document.getElementById('reset').addEventListener('click', ()=>{
   tiles = Array.from({length: total}, (_,i)=>i);
   moves = 0; movesEl.textContent = moves;
   stopTimer(); elapsedMs = 0; timeEl.textContent='00:00.0';
   draw();
-
   run.startedFromShuffle = false;
   run.usedRestore = true;
   if (flagEl) flagEl.textContent = '（本局不計入紀錄）';
 });
-
 document.querySelectorAll('.sizeBtn').forEach(btn=>{
   btn.addEventListener('click', ()=> changeSize(Number(btn.dataset.n)));
 });
-
- selectEl.addEventListener('change', e=>{
-  currentTurtle = e.target.value; // ← 這裡拿到的是 key
+selectEl.addEventListener('change', e=>{
+  currentTurtle = e.target.value;
   setBoardAspect(turtleData[currentTurtle].img);
   shuffle();
   updateBestUI();
 });
-
-// 震動開關
 toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
 toggleBtn.addEventListener('click', ()=>{
   vibrateOn = !vibrateOn;
   localStorage.setItem('turtle_vibrate', vibrateOn ? 'on' : 'off');
   toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
 });
+window.addEventListener('resize', draw);
 
-/* 初始化 */
-window.addEventListener('DOMContentLoaded', () => {
+/* 初始化（先設定比例→再洗牌） */
+window.addEventListener('DOMContentLoaded', ()=>{
   updateBestUI();
-  setBoardAspect(turtleData[currentTurtle].img); // 先設定比例（會觸發 draw）
-  shuffle();                                      // 再洗牌 → tiles 一定會生成
+  setBoardAspect(turtleData[currentTurtle].img);
+  shuffle();
 });
 </script>
 
@@ -537,22 +479,22 @@ window.addEventListener('DOMContentLoaded', () => {
    過關→解說→拍照流程
 ===================== */
 function onGameSolved(explainImageUrl){
-  tryHapticWin(); // Android 震動；iOS Safari 本來不支援
+  tryHapticWin();
 
   const img = document.getElementById('expImg');
   img.removeAttribute('src');
   img.dataset.triedFallback = '0';
   img.onerror = ()=>{
-    const fallback = turtleSrc(window.currentTurtle);
+    const fallback = turtleData[currentTurtle].img;
     if (img.dataset.triedFallback !== '1' && fallback){
       img.dataset.triedFallback = '1';
-      img.src = fallback; // 第一次失敗 → 主圖
+      img.src = fallback;
     } else {
       img.alt = '（本物種暫無解說圖）';
       img.style.minHeight = '200px';
     }
   };
-  img.src = explainImageUrl || turtleSrc(window.currentTurtle);
+  img.src = (explainImageUrl || turtleData[currentTurtle].img) + '?v=4';
 
   const exp = document.getElementById('exp');
   exp.style.display = 'block';
@@ -560,46 +502,23 @@ function onGameSolved(explainImageUrl){
 
   setTimeout(()=> document.getElementById('photoFab').classList.add('show'), 2000);
 }
-
 function closeExplanation(){
-  const el = document.getElementById('exp');
-  el.style.display = 'none';
+  document.getElementById('exp').style.display = 'none';
   document.body.style.overflow = '';
   document.getElementById('photoFab').classList.remove('show');
 }
-function replayLevel(){
-  closeExplanation();
-  shuffle();
-}
+function replayLevel(){ closeExplanation(); shuffle(); }
 </script>
 
 <script>
 /* =====================
    拍照留念（2 模板＋QR）
 ===================== */
-const FRAMES = {
-  patrol: './巡查員.png',
-  coast:  './海巡.png'
-};
+const FRAMES = { patrol: './巡查員.png', coast: './海巡.png' };
+const pb = { video:null, canvas:null, ctx:null, stream:null, usingUpload:false, tpl:'patrol', W:900, H:1200, frameCanvas:null, _smallJpg:null };
 
-const pb = {
-  video:null, canvas:null, ctx:null, stream:null,
-  usingUpload:false, tpl:'patrol',
-  W:900, H:1200, // 3:4
-  frameCanvas:null, _smallJpg:null
-};
-
-function openPhotoBooth(){
-  const el = document.getElementById('pb');
-  el.style.display = 'block';
-  document.body.style.overflow = 'hidden';
-}
-function closePhotoBooth(){
-  stopCam();
-  const el = document.getElementById('pb');
-  el.style.display = 'none';
-  document.body.style.overflow = '';
-}
+function openPhotoBooth(){ document.getElementById('pb').style.display='block'; document.body.style.overflow='hidden'; }
+function closePhotoBooth(){ stopCam(); document.getElementById('pb').style.display='none'; document.body.style.overflow=''; }
 
 window.addEventListener('DOMContentLoaded', ()=>{
   pb.video = document.getElementById('pbVideo');
@@ -613,9 +532,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('pbShareBtn').addEventListener('click', webShare);
 
   document.querySelectorAll('.tplBtn').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
+    btn.addEventListener('click', async e=>{
       document.querySelectorAll('.tplBtn').forEach(b=>b.style.outline='');
-      e.currentTarget.style.outline = '3px solid #39b5ff';
+      e.currentTarget.style.outline='3px solid #39b5ff';
       pb.tpl = e.currentTarget.dataset.tpl;
       pb.frameCanvas = await loadFrameCanvas(pb.tpl);
     });
@@ -624,51 +543,42 @@ window.addEventListener('DOMContentLoaded', ()=>{
   loadFrameCanvas(pb.tpl).then(fc => pb.frameCanvas = fc);
 });
 
-/* 相機 / 相簿 */
 async function useCamera(){
   try{
     stopCam(); pb.usingUpload=false; hideUploadPreview();
     pb.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', aspectRatio:3/4 }});
     pb.video.srcObject = pb.stream;
     document.getElementById('pbSnapBtn').disabled = false;
-  }catch(err){
-    alert('相機無法使用，請改用「從相簿選照片」。\n' + err.message);
-  }
+  }catch(err){ alert('相機無法使用，請改用「從相簿選照片」。\n' + err.message); }
 }
 function stopCam(){ if (pb.stream){ pb.stream.getTracks().forEach(t=>t.stop()); pb.stream=null; } }
 function handleFile(e){
-  const file = e.target.files?.[0]; if(!file) return;
-  stopCam(); pb.usingUpload = true;
-  const url = URL.createObjectURL(file);
+  const f = e.target.files?.[0]; if(!f) return;
+  stopCam(); pb.usingUpload=true;
+  const url = URL.createObjectURL(f);
   const img = document.getElementById('pbUploadPreview');
   img.onload = ()=> URL.revokeObjectURL(url);
-  img.src = url; img.style.display = 'block';
-  pb.video.style.display = 'none';
+  img.src = url; img.style.display='block';
+  pb.video.style.display='none';
   document.getElementById('pbSnapBtn').disabled = false;
 }
 function hideUploadPreview(){ const img = document.getElementById('pbUploadPreview'); img.style.display='none'; pb.video.style.display='block'; }
 
-/* 模板：將近白像素變透明（挖臉洞） */
 async function loadFrameCanvas(kind){
   const src = FRAMES[kind];
   const img = new Image(); img.crossOrigin='anonymous'; img.src = src;
   await img.decode().catch(()=>{});
-  const off = document.createElement('canvas'); off.width = pb.W; off.height = pb.H;
+  const off = document.createElement('canvas'); off.width=pb.W; off.height=pb.H;
   const octx = off.getContext('2d');
-  octx.drawImage(img, 0, 0, off.width, off.height);
+  octx.drawImage(img,0,0,off.width,off.height);
   try{
-    const data = octx.getImageData(0,0,off.width,off.height);
-    const px = data.data;
-    for(let i=0;i<px.length;i+=4){
-      const r=px[i], g=px[i+1], b=px[i+2];
-      if(r>245 && g>245 && b>245) px[i+3]=0; // 白→透明
-    }
+    const data = octx.getImageData(0,0,off.width,off.height), px=data.data;
+    for(let i=0;i<px.length;i+=4){ const r=px[i],g=px[i+1],b=px[i+2]; if(r>245&&g>245&&b>245) px[i+3]=0; }
     octx.putImageData(data,0,0);
   }catch(e){}
   return off;
 }
 
-/* 拍照合成 */
 function doSnapshot(){
   const ctx = pb.ctx, W=pb.W, H=pb.H;
   ctx.clearRect(0,0,W,H);
@@ -678,12 +588,12 @@ function doSnapshot(){
   }else{
     const v = pb.video; drawCover(ctx,v,W,H);
   }
-  if(pb.frameCanvas) ctx.drawImage(pb.frameCanvas, 0, 0, W, H);
+  if(pb.frameCanvas) ctx.drawImage(pb.frameCanvas,0,0,W,H);
 
-  const dataURLpng = pb.canvas.toDataURL('image/png');
+  const dataURL = pb.canvas.toDataURL('image/png');
   const smallJpg = canvasToScaledJpeg(pb.canvas, 720, 960, 0.7);
 
-  const a = document.getElementById('pbDl'); a.href = dataURLpng;
+  const a = document.getElementById('pbDl'); a.href = dataURL;
   document.getElementById('pbDlBtn').disabled = false;
   document.getElementById('pbShareBtn').disabled = false;
   document.getElementById('pbQrBtn').disabled = false;
@@ -692,7 +602,6 @@ function doSnapshot(){
   pb._smallJpg = smallJpg;
 }
 
-/* 小工具 */
 function drawCover(ctx, src, W, H){
   const iw = src.videoWidth || src.naturalWidth;
   const ih = src.videoHeight || src.naturalHeight;
@@ -708,7 +617,6 @@ function canvasToScaledJpeg(srcCanvas, w, h, q){
   return c.toDataURL('image/jpeg', q);
 }
 
-/* 產生 QR（以 data:URL；過大會提醒） */
 function makeQR(){
   const box = document.getElementById('pbQrBox');
   const img = document.getElementById('pbQrImg');
@@ -725,7 +633,6 @@ function makeQR(){
   box.style.display='block';
 }
 
-/* 分享（行動裝置） */
 async function webShare(){
   try{
     if (navigator.canShare){
