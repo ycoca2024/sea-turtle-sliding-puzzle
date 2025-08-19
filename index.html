@@ -41,298 +41,85 @@ transition:transform .12s ease;will-change:transform;
 .stats{ order: 99; width: 100%; justify-content:flex-start; }
 }
 </style>
-  <!-- ===== 破關拍照模組：貼上即可用 ===== -->
-<style>
-  .pb-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:9999}
-  .pb-wrap{position:absolute;inset:0;margin:auto;background:#0b2230;color:#fff;max-width:min(92vw,880px);border-radius:14px;box-shadow:0 10px 50px rgba(0,0,0,.35);overflow:hidden}
-  .pb-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f2e40}
-  .pb-head b{font-size:18px}
-  .pb-close{background:#173d54;border:0;color:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
-  .pb-body{display:grid;grid-template-columns:1fr 300px;gap:12px; padding:12px}
-  .pb-left{display:grid;gap:8px;align-items:center;justify-items:center}
-  .pb-cam{background:#000;display:grid;place-items:center;width:100%;aspect-ratio:3/4;border-radius:10px;overflow:hidden}
-  .pb-cam video,.pb-cam img{width:100%;height:100%;object-fit:cover}
-  .pb-canvas{display:none}
-  .pb-right{display:grid;gap:10px}
-  .pb-right .row{display:flex;gap:8px;flex-wrap:wrap}
-  .pb-right button,.pb-right label{border:0;background:#184a67;color:#fff;border-radius:10px;padding:10px 12px;cursor:pointer}
-  .pb-right button[disabled]{opacity:.6;cursor:not-allowed}
-  .pb-right input[type="file"]{display:none}
-  .pb-txt{background:#0f2e40;border-radius:10px;padding:10px;font-size:14px;line-height:1.45}
-  @media (max-width:900px){.pb-body{grid-template-columns:1fr}}
+  <style>
+  /* 解說圖容器（覆蓋在遊戲上） */
+  .exp-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:8888}
+  .exp-wrap{position:absolute;inset:0;margin:auto;max-width:min(96vw,980px);background:#0b2230;border-radius:14px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,.35)}
+  .exp-head{display:flex;justify-content:space-between;align-items:center;background:#0f2e40;color:#fff;padding:10px 14px}
+  .exp-body{padding:10px;background:#0b2230}
+  .exp-body img{display:block;width:100%;height:auto;border-radius:10px;background:#001}
+  .exp-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;padding:10px}
+  .btn{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;color:#fff;background:#184a67}
+  .btn.secondary{background:#254b5a}
+  /* 右下漂浮的拍照大鈕（延遲 3 秒才出現） */
+  .cta-fab{position:fixed;right:18px;bottom:18px;z-index:8890;border:0;border-radius:999px;padding:14px 18px;font-size:16px;background:#2aa2ff;color:#072233;box-shadow:0 6px 24px rgba(0,0,0,.35);display:none}
+  .cta-fab.show{display:inline-flex;align-items:center;gap:8px}
 </style>
 
-<div class="pb-backdrop" id="pb">
-  <div class="pb-wrap">
-    <div class="pb-head">
-      <b>海龜華容道｜破關拍照</b>
-      <button class="pb-close" onclick="closePhotoBooth()">關閉</button>
+<div id="exp" class="exp-backdrop" role="dialog" aria-modal="true" aria-label="海龜解說">
+  <div class="exp-wrap">
+    <div class="exp-head">
+      <b>海龜解說</b>
+      <button class="btn secondary" onclick="closeExplanation()">關閉</button>
     </div>
-    <div class="pb-body">
-      <div class="pb-left">
-        <div class="pb-cam">
-          <video id="pbVideo" playsinline autoplay muted></video>
-          <img id="pbUploadPreview" alt="" style="display:none"/>
-        </div>
-        <canvas id="pbCanvas" class="pb-canvas" width="900" height="1200"></canvas>
-      </div>
-      <div class="pb-right">
-        <div class="row">
-          <button id="pbUseCamBtn">開啟相機</button>
-          <label for="pbFile">從相簿選照片</label>
-          <input id="pbFile" type="file" accept="image/*" />
-        </div>
-        <div class="row">
-          <button data-tpl="patrol" class="tplBtn">套用：巡查員</button>
-          <button data-tpl="coast" class="tplBtn">套用：海巡</button>
-        </div>
-        <div class="row">
-          <button id="pbSnapBtn" disabled>拍照/合成</button>
-          <a id="pbDl" download="海龜華容道_留念.png">
-            <button id="pbDlBtn" disabled>下載圖片</button>
-          </a>
-        </div>
-        <div class="pb-txt">
-          使用方式：<br>
-          1) 開相機或選相簿 → 2) 選模板（巡查員/海巡）→ 3) 按「拍照/合成」→ 4) 下載圖片。<br>
-          小技巧：請把臉置中，退一步取 3:4 半身效果最好。
-        </div>
-      </div>
+    <div class="exp-body">
+      <img id="expImg" alt="海龜解說圖">
+    </div>
+    <div class="exp-actions">
+      <button class="btn secondary" onclick="replayLevel()">再玩一次</button>
+      <button class="btn" onclick="openPhotoBooth()">拍照留念</button>
     </div>
   </div>
 </div>
 
+<button id="photoFab" class="cta-fab" onclick="openPhotoBooth()" aria-label="拍照留念">
+  📷 拍照留念
+</button>
+
 <script>
-/* ===== 破關時呼叫 ===== */
-function openPhotoBooth(){
-  const el = document.getElementById('pb');
-  el.style.display = 'block';
+/** 在「過關後」呼叫這個：先顯示你的解說圖，再引導拍照 **/
+function showExplanation(imageUrl){
+  renderExplanation(imageUrl);    // 繪出解說圖
+  // 3 秒後浮出右下角的拍照提示（不打擾閱讀）
+  setTimeout(()=> document.getElementById('photoFab').classList.add('show'), 3000);
+}
+
+/** 你原有的過關判定：把 openPhotoBooth() 換成 showExplanation(url) **/
+/*
+if (isSolved) {
+  showExplanation('assets/explain/green_turtle.png');
+}
+*/
+
+function renderExplanation(url){
+  const bd = document.getElementById('exp');
+  const img = document.getElementById('expImg');
+  img.src = url;
+  bd.style.display = 'block';
   document.body.style.overflow = 'hidden';
 }
-function closePhotoBooth(){
-  stopCam();
-  const el = document.getElementById('pb');
-  el.style.display = 'none';
+
+function closeExplanation(){
+  document.getElementById('exp').style.display = 'none';
   document.body.style.overflow = '';
+  // 關閉時順便把右下拍照鈕藏起來（避免殘留）
+  document.getElementById('photoFab').classList.remove('show');
 }
 
-/* ===== 元件與狀態 ===== */
-const pb = {
-  video: null, canvas: null, ctx: null, stream: null, usingUpload: false,
-  tpl: 'patrol', // 預設模板
-  W: 900, H: 1200, // 輸出比例 3:4，夠印A4或社群貼文
-};
+/** 可替換成你遊戲的「再玩一次」流程 **/
+function replayLevel(){
+  closeExplanation();
+  // resetGame(); // ← 你的重開函式
+}
 
-window.addEventListener('DOMContentLoaded', () => {
-  pb.video = document.getElementById('pbVideo');
-  pb.canvas = document.getElementById('pbCanvas');
-  pb.ctx = pb.canvas.getContext('2d', { willReadFrequently: true });
-
-  document.getElementById('pbUseCamBtn').addEventListener('click', useCamera);
-  document.getElementById('pbFile').addEventListener('change', handleFile);
-  document.getElementById('pbSnapBtn').addEventListener('click', doSnapshot);
-  document.querySelectorAll('.tplBtn').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      pb.tpl = e.currentTarget.dataset.tpl;
-      // 視覺回饋
-      document.querySelectorAll('.tplBtn').forEach(b=>b.style.outline='');
-      e.currentTarget.style.outline = '3px solid #39b5ff';
-    });
-  });
+/** 無障礙：按下 ESC 也能關掉解說 **/
+window.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    const exp = document.getElementById('exp');
+    if(getComputedStyle(exp).display !== 'none') closeExplanation();
+  }
 });
-
-/* ===== 相機 / 相簿 ===== */
-async function useCamera(){
-  try{
-    stopCam();
-    pb.usingUpload = false;
-    hideUploadPreview();
-    pb.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', aspectRatio: 3/4 }});
-    pb.video.srcObject = pb.stream;
-    document.getElementById('pbSnapBtn').disabled = false;
-  }catch(err){
-    alert('相機無法使用，請改用「從相簿選照片」。\n' + err.message);
-  }
-}
-function stopCam(){
-  if (pb.stream){
-    pb.stream.getTracks().forEach(t=>t.stop());
-    pb.stream = null;
-  }
-}
-function handleFile(e){
-  const file = e.target.files?.[0];
-  if(!file) return;
-  stopCam();
-  pb.usingUpload = true;
-  const url = URL.createObjectURL(file);
-  const img = document.getElementById('pbUploadPreview');
-  img.onload = ()=> URL.revokeObjectURL(url);
-  img.src = url;
-  img.style.display = 'block';
-  pb.video.style.display = 'none';
-  document.getElementById('pbSnapBtn').disabled = false;
-}
-function hideUploadPreview(){
-  const img = document.getElementById('pbUploadPreview');
-  img.style.display = 'none';
-  pb.video.style.display = 'block';
-}
-
-/* ===== 主流程：拍照/合成 → 下載 ===== */
-function doSnapshot(){
-  const ctx = pb.ctx, W = pb.W, H = pb.H;
-  ctx.clearRect(0,0,W,H);
-
-  // 先把相機畫面或上傳圖畫上去（滿版裁切）
-  if(pb.usingUpload){
-    const img = document.getElementById('pbUploadPreview');
-    drawCover(ctx, img, W, H);
-  }else{
-    const v = pb.video;
-    drawCover(ctx, v, W, H);
-  }
-
-  // 疊上模板
-  if(pb.tpl === 'patrol') drawPatrolOverlay(ctx, W, H);
-  else drawCoastOverlay(ctx, W, H);
-
-  // 輸出
-  const dataURL = pb.canvas.toDataURL('image/png');
-  const a = document.getElementById('pbDl');
-  a.href = dataURL;
-  document.getElementById('pbDlBtn').disabled = false;
-
-  // 讓預覽看得到成果（可視需要顯示 canvas）
-  pb.canvas.style.display = 'block';
-}
-
-/* ===== 覆蓋繪製：等比置中裁切 ===== */
-function drawCover(ctx, src, W, H){
-  const iw = src.videoWidth || src.naturalWidth;
-  const ih = src.videoHeight || src.naturalHeight;
-  if(!iw || !ih){ alert('來源尚未就緒，請再試一次。'); return; }
-  const sRatio = Math.max(W/iw, H/ih);
-  const dw = iw * sRatio, dh = ih * sRatio;
-  const dx = (W - dw)/2, dy = (H - dh)/2;
-  ctx.drawImage(src, dx, dy, dw, dh);
-}
-
-/* ===== 兩種模板（純 Canvas 矢量，免外部檔）===== */
-function drawPatrolOverlay(ctx, W, H){
-  // 深色下導角框
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';
-  roundRect(ctx, 24, 24, W-48, H-48, 28); ctx.fill();
-
-  // 上方抬頭條
-  ctx.fillStyle = 'rgba(5,25,40,0.85)';
-  roundRect(ctx, 24, 24, W-48, 120, {tl:28,tr:28,br:12,bl:12}); ctx.fill();
-
-  // 左上徽章
-  ringBadge(ctx, 70, 84, 26, '巡');
-
-  // 文字
-  ctx.fillStyle = '#d7f0ff';
-  ctx.font = '700 42px system-ui, Noto Sans TC, sans-serif';
-  ctx.fillText('巡查員 一日體驗', 112, 102);
-
-  // 下方名牌
-  nameplate(ctx, W, H, '巡查員 PATROL');
-  // 右下 Logo 條（示意）
-  footerBar(ctx, W, H, '海龜華容道｜海洋保育');
-  ctx.restore();
-}
-
-function drawCoastOverlay(ctx, W, H){
-  // 海藍色外框
-  ctx.save();
-  ctx.strokeStyle = 'rgba(20,150,210,0.9)';
-  ctx.lineWidth = 18;
-  roundRect(ctx, 20, 20, W-40, H-40, 26); ctx.stroke();
-
-  // 頭盔條
-  ctx.fillStyle = 'rgba(0,60,100,0.85)';
-  roundRect(ctx, 40, 40, W-80, 120, 20); ctx.fill();
-
-  // 左上徽章（海）
-  ringBadge(ctx, 80, 100, 28, '海');
-
-  // 標題
-  ctx.fillStyle = '#e9fbff';
-  ctx.font = '700 44px system-ui, Noto Sans TC, sans-serif';
-  ctx.fillText('海巡 Coast Guard', 130, 108);
-
-  // 下方肩章
-  ctx.fillStyle = 'rgba(0,60,100,0.82)';
-  roundRect(ctx, 70, H-210, W-140, 120, 18); ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = '700 40px system-ui, Noto Sans TC, sans-serif';
-  ctx.fillText('守護海洋・全民同行', 110, H-138);
-
-  // 右下 Logo 條
-  footerBar(ctx, W, H, '海龜華容道｜一起減塑');
-  ctx.restore();
-}
-
-/* ===== 小工具：圓角框、徽章、名牌、頁腳 ===== */
-function roundRect(ctx, x, y, w, h, r){
-  let radii = typeof r === 'number' ? {tl:r,tr:r,br:r,bl:r} : r;
-  const {tl=0,tr=0,br=0,bl=0} = radii;
-  ctx.beginPath();
-  ctx.moveTo(x+tl, y);
-  ctx.arcTo(x+w, y, x+w, y+h, tr);
-  ctx.arcTo(x+w, y+h, x, y+h, br);
-  ctx.arcTo(x, y+h, x, y, bl);
-  ctx.arcTo(x, y, x+w, y, tl);
-  ctx.closePath();
-}
-
-function ringBadge(ctx, cx, cy, r, txt){
-  ctx.save();
-  // 外圈
-  ctx.beginPath(); ctx.arc(cx, cy, r+6, 0, Math.PI*2); ctx.fillStyle='rgba(255,255,255,.88)'; ctx.fill();
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle='rgba(20,140,200,.95)'; ctx.fill();
-
-  // 中心字
-  ctx.fillStyle='#fff';
-  ctx.font = '700 28px system-ui, Noto Sans TC, sans-serif';
-  const w = ctx.measureText(txt).width;
-  ctx.fillText(txt, cx - w/2, cy + 10);
-  ctx.restore();
-}
-
-function nameplate(ctx, W, H, text){
-  const w = Math.min(W*0.82, 700), h = 110, x = (W - w)/2, y = H - 220;
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
-  ctx.fillStyle = 'rgba(10,90,130,.88)';
-  roundRect(ctx, x, y, w, h, 16); ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = '700 40px system-ui, Noto Sans TC, sans-serif';
-  const tw = ctx.measureText(text).width;
-  ctx.fillText(text, x + (w - tw)/2, y + 70);
-  ctx.restore();
-}
-
-function footerBar(ctx, W, H, text){
-  const h = 66, y = H - 36 - h, x = 36, w = W - 72;
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,.32)';
-  roundRect(ctx, x, y, w, h, 14); ctx.fill();
-  ctx.fillStyle = '#e0f6ff';
-  ctx.font = '600 28px system-ui, Noto Sans TC, sans-serif';
-  ctx.fillText(text, x + 18, y + 44);
-  ctx.restore();
-}
-
-/* ===== 將影片/相片繪到 canvas 前：確保尺寸 ===== */
-(function ensureCanvasSize(){
-  const c = document.getElementById('pbCanvas');
-  c.width = pb.W; c.height = pb.H;
-})();
 </script>
-<!-- ===== 模組結束 ===== -->
 </head>
 <body>
 <div class="wrap">
