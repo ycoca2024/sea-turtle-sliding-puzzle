@@ -83,11 +83,11 @@ transition:transform .12s ease;will-change:transform;
   <div class="subtitle">
     選擇海龜種類：
     <select id="turtleSelect" aria-label="選擇海龜種類">
-      <option value="leatherback">革龜</option>
-      <option value="green">綠蠵龜</option>
-      <option value="olive">欖蠵龜</option>
-      <option value="hawksbill">玳瑁</option>
-      <option value="loggerhead">赤蠵龜</option>
+      <option value="leatherback.jpg">革龜</option>
+      <option value="green.jpg">綠蠵龜</option>
+      <option value="olive.jpg">欖蠵龜</option>
+      <option value="hawksbill.jpg">玳瑁</option>
+      <option value="loggerhead.jpg">赤蠵龜</option>
     </select>
   </div>
 
@@ -190,11 +190,11 @@ transition:transform .12s ease;will-change:transform;
    物種資料（主圖名即可；infoImg 會自動保底為主圖）
 ===================== */
 const turtleData = {
-  leatherback: { img: 'leatherback', title: '革龜（Dermochelys coriacea）', desc: '世界上最大的海龜，體長常見 1.5–2.0 公尺以上、體重可逾 500–900 公斤。背甲無硬鱗，為革質外皮覆蓋骨板而得名。台灣曾於東部外海、澎湖、東沙海域有紀錄。', infoImg: '' },
-  green:       { img: 'green',       title: '綠蠵龜（Chelonia mydas）', desc: '成龜以海草、海藻為主食，體色偏綠。台灣常見於蘭嶼、綠島與墾丁海域，亦有上岸產卵紀錄點。', infoImg: '' },
-  olive:       { img: 'olive',       title: '欖蠵龜（Lepidochelys olivacea）', desc: '體型較小，背甲橄欖綠色，常見於熱帶及亞熱帶沿海。台灣海域偶有出現紀錄。', infoImg: '' },
-  hawksbill:   { img: 'hawksbill',   title: '玳瑁（Eretmochelys imbricata）', desc: '背甲鱗片重疊、龜甲邊緣具鋸齒，常活動於珊瑚礁。台灣南部及離島珊瑚礁區較易見。', infoImg: '' },
-  loggerhead:  { img: 'loggerhead',  title: '赤蠵龜（Caretta caretta）', desc: '頭部寬大、背甲紅褐色，偏好硬殼無脊椎動物。台灣周邊海域有洄游與偶見紀錄。', infoImg: '' }
+  leatherback: { img: 'leatherback.jpg', title: '革龜（Dermochelys coriacea）', desc: '世界上最大的海龜，體長常見 1.5–2.0 公尺以上、體重可逾 500–900 公斤。背甲無硬鱗，為革質外皮覆蓋骨板而得名。台灣曾於東部外海、澎湖、東沙海域有紀錄。', infoImg: '' },
+  green:       { img: 'green.jpg',       title: '綠蠵龜（Chelonia mydas）', desc: '成龜以海草、海藻為主食，體色偏綠。台灣常見於蘭嶼、綠島與墾丁海域，亦有上岸產卵紀錄點。', infoImg: '' },
+  olive:       { img: 'olive.jpg',       title: '欖蠵龜（Lepidochelys olivacea）', desc: '體型較小，背甲橄欖綠色，常見於熱帶及亞熱帶沿海。台灣海域偶有出現紀錄。', infoImg: '' },
+  hawksbill:   { img: 'hawksbill.jpg',   title: '玳瑁（Eretmochelys imbricata）', desc: '背甲鱗片重疊、龜甲邊緣具鋸齒，常活動於珊瑚礁。台灣南部及離島珊瑚礁區較易見。', infoImg: '' },
+  loggerhead:  { img: 'loggerhead.jpg',  title: '赤蠵龜（Caretta caretta）', desc: '頭部寬大、背甲紅褐色，偏好硬殼無脊椎動物。台灣周邊海域有洄游與偶見紀錄。', infoImg: '' }
 };
 
 /* =====================
@@ -245,7 +245,7 @@ function turtleInfoSrc(key){
    遊戲主程式
 ===================== */
 let N = 3, total = N*N, emptyGoal = total-1;
-let currentTurtle = 'leatherback';
+let currentTurtle = 'leatherback.jpg';
 let tiles = [];
 let moves = 0, timer = null, startTime = null, elapsedMs = 0;
 
