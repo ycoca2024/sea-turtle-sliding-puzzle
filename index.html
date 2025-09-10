@@ -36,35 +36,9 @@ transition:transform .12s ease;will-change:transform;}
 .sizes{display:flex;gap:6px;flex-wrap:wrap}
 .sizes button.active{background:#1aa37a}
 
-/* 解說視窗 + 拍照浮鈕 */
-.exp-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:8888}
-.exp-wrap{position:absolute;inset:0;margin:auto;max-width:min(96vw,980px);background:#0b2230;border-radius:14px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,.35)}
-.exp-head{display:flex;justify-content:space-between;align-items:center;background:#0f2e40;color:#fff;padding:10px 14px}
-.exp-body{padding:10px;background:#0b2230}
-.exp-body img{display:block;width:100%;height:auto;border-radius:10px;background:#001}
-.exp-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;padding:10px}
-.btn{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;color:#fff;background:#184a67}
-.btn.secondary{background:#254b5a}
-.cta-fab{position:fixed;right:18px;bottom:18px;z-index:8890;border:0;border-radius:999px;padding:14px 18px;font-size:16px;background:#2aa2ff;color:#072233;box-shadow:0 6px 24px rgba(0,0,0,.35);display:none}
-.cta-fab.show{display:inline-flex;align-items:center;gap:8px}
-.cta-fab.pulse{transform:scale(1.06);transition:.15s}
 
-/* 拍照視窗（精簡版） */
-.pb{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:9999}
-.pb .box{position:absolute;inset:0;margin:auto;background:#0b2230;color:#fff;max-width:min(92vw,880px);border-radius:14px;box-shadow:0 10px 50px rgba(0,0,0,.35);overflow:hidden}
-.pb .head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f2e40}
-.pb .body{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px}
-.pb .cam{background:#000;display:grid;place-items:center;width:100%;aspect-ratio:3/4;border-radius:10px;overflow:hidden}
-.pb video,.pb img{width:100%;height:100%;object-fit:cover}
-.pb canvas{display:none}
-.pb .col{display:grid;gap:10px}
-.pb .row{display:flex;gap:8px;flex-wrap:wrap}
-.pb button,.pb label{border:0;background:#184a67;color:#fff;border-radius:10px;padding:10px 12px;cursor:pointer}
-.pb button[disabled]{opacity:.6;cursor:not-allowed}
-.pb input[type="file"]{display:none}
-.pb .qr{display:none;background:#0f2e40;border-radius:10px;padding:10px;text-align:center}
-.pb .qr img{max-width:100%;height:auto;display:block;margin:8px auto}
-@media (max-width:900px){.pb .body{grid-template-columns:1fr}}
+
+
 /* 手機上保證看得到清除鍵與統計列 */
 @media (max-width: 520px){
   #clearCurrent{ order: 98; width: 100%; }
@@ -131,19 +105,9 @@ transition:transform .12s ease;will-change:transform;}
     </div>
     <div class="exp-actions">
       <button class="btn secondary" onclick="replayLevel()">再玩一次</button>
-      <button class="btn" onclick="openPhotoBooth()">拍照留念</button>
-    </div>
   </div>
 </div>
-<button id="photoFab" class="cta-fab" onclick="openPhotoBooth()" aria-label="拍照留念">📷 拍照留念</button>
 
-<!-- 拍照視窗 -->
-<div class="pb" id="pb">
-  <div class="box">
-    <div class="head">
-      <b>海龜華容道｜拍照留念</b>
-      <button onclick="closePhotoBooth()">關閉</button>
-    </div>
     <div class="body">
       <div class="col">
         <div class="cam">
@@ -154,32 +118,7 @@ transition:transform .12s ease;will-change:transform;}
       </div>
       <div class="col">
         <div class="row">
-          <button id="pbUseCamBtn">開啟相機</button>
-          <label for="pbFile">從相簿選照片</label>
-          <input id="pbFile" type="file" accept="image/*" />
-        </div>
-        <div class="row">
-          <button data-tpl="patrol" class="tplBtn">套用：巡查員</button>
-          <button data-tpl="coast"  class="tplBtn">套用：海巡</button>
-        </div>
-        <div class="row">
-          <button id="pbSnapBtn" disabled>拍照/合成</button>
-          <a id="pbDl" download="海龜華容道_留念.png"><button id="pbDlBtn" disabled>下載圖片</button></a>
-        </div>
-        <div class="row">
-          <button id="pbShareBtn" disabled>分享（行動裝置）</button>
-          <button id="pbQrBtn" disabled>產生 QR</button>
-        </div>
-        <div id="pbQrBox" class="qr">
-          <div>掃描下載（若掃描器不支援 data: 連結，請改用下載/分享）</div>
-          <img id="pbQrImg" alt="QR Code">
-          <div id="pbQrHint" style="font-size:12px;opacity:.8"></div>
-        </div>
-        <div style="background:#0f2e40;border-radius:10px;padding:10px;font-size:13px;line-height:1.45">
-          流程：開相機/選照片 → 選模板 → 拍照合成 → 下載 / 分享 / 產生 QR。<br>iOS Safari 不支援震動；QR 容量有限。
-        </div>
-      </div>
-    </div>
+      
   </div>
 </div>
 
@@ -189,11 +128,8 @@ transition:transform .12s ease;will-change:transform;}
 ===================== */
 const turtleData = {
   leatherback: { img: './leatherback.jpg', title: '革龜（Dermochelys coriacea）', 
-  desc: '
- 特色：世界上最大的海龜，體長可超過 2 公尺、體重可達 900 公斤。背甲沒有硬鱗片，而是厚厚的皮革狀組織。
- 食性：主要以水母為食。
- 習性：能進行跨大洋的長距離遷徙，潛水深度可達 1000 公尺以上。
- 保育狀況：IUCN 列為 極危 (CR)。', infoImg: './leatherback.jpg' },
+  desc: '特色：世界上最大的海龜，體長可超過 2 公尺、體重可達 900 公斤。背甲沒有硬鱗片，而是厚厚的皮革狀組織。 食性：主要以水母為食。
+ 習性：能進行跨大洋的長距離遷徙，潛水深度可達 1000 公尺以上。 保育狀況：IUCN 列為 極危 (CR)。', infoImg: './leatherback.jpg' },
   green:       { img: './green.jpg',       title: '綠蠵龜（Chelonia mydas）',     desc: '成龜以海草…',     infoImg: './green.jpg' },
   olive:       { img: './olive.jpg',       title: '欖蠵龜（Lepidochelys olivacea）', desc: '體型較小…', infoImg: './olive.jpg' },
   hawksbill:   { img: './hawksbill.jpg',   title: '玳瑁（Eretmochelys imbricata）', desc: '背甲鱗片重疊…', infoImg: './hawksbill.jpg' },
