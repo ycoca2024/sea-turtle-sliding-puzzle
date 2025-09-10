@@ -1,589 +1,119 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>海龜華容道｜2×2 / 3×3 / 4×4（步數＋時間＋震動＋拍照）</title>
-<style>
-:root { --gap: 3px; }
-body{font-family: system-ui, -apple-system, "Segoe UI", Arial; margin:0; background:#0e2a3b; color:#fff}
-.wrap{max-width:900px;margin:0 auto;padding:16px}
-h1{font-size:20px;margin:0 0 6px}
-.subtitle{opacity:.9;margin:6px 0 10px}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-select,button{background:#1f6f8b;color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
-select{appearance:none}
-button:hover{filter:brightness(1.1)}
-.stats{margin-left:auto;display:flex;gap:12px;align-items:center;font-variant-numeric:tabular-nums; flex-wrap:wrap}
-.board{width:min(92vw,720px);position:relative;border-radius:14px;background:#102534;
-box-shadow:0 12px 36px rgba(0,0,0,.4);margin:10px auto;touch-action:manipulation;user-select:none;overflow:hidden}
-/* 重要：先給固定高度，避免高度為 0 時看不到圖 */
-.board{height: min(92vw,720px); aspect-ratio: 1/1;}
-.tile{
-position:absolute;background-size:cover;background-repeat:no-repeat;background-position:center;
-border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 6px 14px rgba(0,0,0,.35);
-transition:transform .12s ease;will-change:transform;}
-.tile::after{content:"";position:absolute;inset:0;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
-.tile.empty{opacity:0;pointer-events:none}
-.gridlines{position:absolute;inset:0;border-radius:14px;pointer-events:none}
-.win{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.25);backdrop-filter:blur(2px);z-index:10;padding:12px;}
-.win.show{display:grid}
-.win .card{background:#fff;color:#123;padding:18px 22px;border-radius:12px;max-width:min(90vw,560px);max-height: calc(100% - 24px); overflow:auto}
-.win .card img{max-width:100%;border-radius:8px;margin-bottom:10px;width:100%;height:auto;display:block}
-.win .card h2{margin:.2em 0 .4em;font-size:18px}
-.win .card p{margin:.3em 0 1em;line-height:1.5}
-.small{font-size:12px;opacity:.8}
-.sizes{display:flex;gap:6px;flex-wrap:wrap}
-.sizes button.active{background:#1aa37a}
-
-
-
-
-/* 手機上保證看得到清除鍵與統計列 */
-@media (max-width: 520px){
-  #clearCurrent{ order: 98; width: 100%; }
-  .stats{ order: 99; width: 100%; justify-content:flex-start; }
-}
-</style>
+  <meta charset="UTF-8">
+  <title>海龜華容道</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f0f8ff; }
+    h1 { margin-top: 10px; }
+    #menu button { margin: 10px; padding: 10px 20px; font-size: 16px; }
+    #puzzle { display: grid; margin: 20px auto; gap: 2px; }
+    .tile { 
+      background-size: cover; 
+      background-position: center; 
+      cursor: pointer; 
+      border: 1px solid #ccc; 
+    }
+    .hidden { display: none; }
+    #infoBox {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: white; padding: 20px; border: 2px solid #333;
+      width: 300px; z-index: 100;
+    }
+    #infoBox button { margin-top: 10px; padding: 5px 15px; }
+  </style>
 </head>
 <body>
-<div class="wrap">
   <h1>海龜華容道</h1>
-
-  <div class="subtitle">
-    選擇海龜種類：
-    <select id="turtleSelect" aria-label="選擇海龜種類">
-      <option value="leatherback">革龜</option>
-      <option value="green">綠蠵龜</option>
-      <option value="olive">欖蠵龜</option>
-      <option value="hawksbill">玳瑁</option>
-      <option value="loggerhead">赤蠵龜</option>
-    </select>
+  <div id="menu">
+    <p>選擇拼圖大小：</p>
+    <button onclick="startGame(2)">2×2</button>
+    <button onclick="startGame(3)">3×3</button>
   </div>
-
-  <div class="subtitle">點擊或觸控相鄰空格的拼圖塊，使圖片還原。</div>
-
-  <div class="toolbar">
-    <div class="sizes" role="group" aria-label="選擇難度">
-      <button data-n="2" class="sizeBtn">2×2 簡單</button>
-      <button data-n="3" class="sizeBtn active">3×3 一般</button>
-      <button data-n="4" class="sizeBtn">4×4 挑戰</button>
-    </div>
-    <button id="shuffle">重新洗牌</button>
-    <button id="reset">還原</button>
-    <button id="toggleVibrate">震動：開</button>
-    <button id="clearCurrent" onclick="clearCurrentRecord()">清除當前紀錄</button>
-
-    <div class="stats">
-      <span>步數：<strong id="moves">0</strong></span>
-      <span>時間：<strong id="time">00:00.0</strong></span>
-      <span>|</span>
-      <span>歷史最佳步數：<strong id="bestMoves">—</strong></span>
-      <span>歷史最佳時間：<strong id="bestTime">—</strong></span>
-      <span id="recordFlag" class="small"></span>
-    </div>
+  
+  <div id="puzzle"></div>
+  
+  <div id="infoBox" class="hidden">
+    <h2 id="turtleName"></h2>
+    <p id="turtleDesc"></p>
+    <button onclick="closeInfo()">關閉</button>
   </div>
-
-  <div class="board" id="board" aria-label="Sliding puzzle board" aria-live="polite">
-    <div class="gridlines" id="gridlines" aria-hidden="true"></div>
-    <div class="win" id="win"><div class="card"><strong>完成！</strong></div></div>
-  </div>
-</div>
-
-<!-- 破關音效 -->
-<audio id="winSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
-
-<!-- 解說視窗 -->
-<div id="exp" class="exp-backdrop" role="dialog" aria-modal="true" aria-label="海龜解說">
-  <div class="exp-wrap">
-    <div class="exp-head">
-      <b>海龜解說</b>
-      <button class="btn secondary" onclick="closeExplanation()">關閉</button>
-    </div>
-    <div class="exp-body">
-      <img id="expImg" alt="海龜解說圖">
-    </div>
-    <div class="exp-actions">
-      <button class="btn secondary" onclick="replayLevel()">再玩一次</button>
-  </div>
-</div>
-
-    <div class="body">
-      <div class="col">
-        <div class="cam">
-          <video id="pbVideo" playsinline autoplay muted></video>
-          <img id="pbUploadPreview" alt="" style="display:none"/>
-        </div>
-        <canvas id="pbCanvas" width="900" height="1200"></canvas>
-      </div>
-      <div class="col">
-        <div class="row">
-      
-  </div>
-</div>
 
 <script>
-/* =====================
-   物種資料（直接使用你的根目錄圖片）
-===================== */
-const turtleData = {
-  leatherback: { img: './leatherback.jpg', title: '革龜（Dermochelys coriacea）', 
-  desc: '特色：世界上最大的海龜，體長可超過 2 公尺、體重可達 900 公斤。背甲沒有硬鱗片，而是厚厚的皮革狀組織。 食性：主要以水母為食。
- 習性：能進行跨大洋的長距離遷徙，潛水深度可達 1000 公尺以上。 保育狀況：IUCN 列為 極危 (CR)。', infoImg: './leatherback.jpg' },
-  green:       { img: './green.jpg',       title: '綠蠵龜（Chelonia mydas）',     desc: '成龜以海草…',     infoImg: './green.jpg' },
-  olive:       { img: './olive.jpg',       title: '欖蠵龜（Lepidochelys olivacea）', desc: '體型較小…', infoImg: './olive.jpg' },
-  hawksbill:   { img: './hawksbill.jpg',   title: '玳瑁（Eretmochelys imbricata）', desc: '背甲鱗片重疊…', infoImg: './hawksbill.jpg' },
-  loggerhead:  { img: './loggerhead.jpg',  title: '赤蠵龜（Caretta caretta）',     desc: '頭部寬大…',     infoImg: './loggerhead.jpg' }
-};
+const turtles = [
+  { name: "綠蠵龜", img: "green.jpg", desc: "綠蠵龜主要以海草為食，是最常見的大型海龜之一。" },
+  { name: "赤蠵龜", img: "loggerhead.jpg", desc: "赤蠵龜以頭大著稱，主要捕食甲殼類和軟體動物。" },
+  { name: "玳瑁", img: "hawksbill.jpg", desc: "玳瑁有美麗的龜甲花紋，常以海綿為食。" },
+  { name: "欖蠵龜", img: "olive.jpg", desc: "欖蠵龜體型較小，會集體上岸產卵，場面壯觀。" },
+  { name: "革龜", img: "leatherback.jpg", desc: "革龜是世界上最大的海龜，以水母為主要食物。" }
+];
 
-let N = 3, total = N*N, emptyGoal = total-1;
-let currentTurtle = 'leatherback';
-let tiles = [];
-let moves = 0, timer = null, startTime = null, elapsedMs = 0;
+let gridSize, puzzleDiv, emptyIndex, tiles, turtle;
 
-// 紀錄合法新局
-const run = { startedFromShuffle:false, usedRestore:false, seed:0 };
+function startGame(size) {
+  gridSize = size;
+  turtle = turtles[Math.floor(Math.random()*turtles.length)];
+  puzzleDiv = document.getElementById("puzzle");
+  puzzleDiv.innerHTML = "";
+  puzzleDiv.style.gridTemplateColumns = `repeat(${size}, 100px)`;
+  puzzleDiv.style.gridTemplateRows = `repeat(${size}, 100px)`;
 
-// DOM
-const board = document.getElementById('board');
-const gridlines = document.getElementById('gridlines');
-const movesEl = document.getElementById('moves');
-const timeEl = document.getElementById('time');
-const winEl = document.getElementById('win');
-const selectEl = document.getElementById('turtleSelect');
-const winSound = document.getElementById('winSound');
-const toggleBtn = document.getElementById('toggleVibrate');
-const flagEl = document.getElementById('recordFlag');
+  let order = Array.from(Array(size*size).keys());
+  order.sort(() => Math.random()-0.5); // 打亂順序
 
-// 震動
-let vibrateOn = localStorage.getItem('turtle_vibrate') !== 'off';
-
-/* 紀錄（依物種+尺寸） */
-const LS_KEY = 'turtle_puzzle_records_v3';
-function loadRecords(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e){ return {}; } }
-function saveRecords(r){ localStorage.setItem(LS_KEY, JSON.stringify(r)); }
-function keyOf(t,n){ return `${t}__${n}`; }
-let records = loadRecords();
-
-function updateBestUI(){
-  const r = records[keyOf(currentTurtle, N)] || {};
-  document.getElementById('bestMoves').textContent = (r.bestMoves!=null) ? `${r.bestMoves} 步` : '—';
-  document.getElementById('bestTime').textContent = (r.bestTimeMs!=null) ? formatMs(r.bestTimeMs) : '—';
-}
-
-/* 工具 */
-const p2xy = p => ({ x:p%N, y:Math.floor(p/N) });
-const xy2p = (x,y) => y*N + x;
-function formatMs(ms){
-  const m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000), ds = Math.floor((ms%1000)/100);
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${ds}`;
-}
-
-/* Haptics */
-function haptic(kind){
-  if(!vibrateOn || !('vibrate' in navigator)) return;
-  if(kind==='move') navigator.vibrate(12);
-  else if(kind==='shuffle') navigator.vibrate([8,30,8]);
-  else if(kind==='win') navigator.vibrate([25,30,25,30,40]);
-}
-function tryHapticWin(){
-  try{
-    if ('vibrate' in navigator) navigator.vibrate([30,50,30]);
-    else {
-      const fab = document.getElementById('photoFab');
-      if (fab){ fab.classList.add('pulse'); setTimeout(()=>fab.classList.remove('pulse'), 800); }
-    }
-  }catch(e){}
-}
-
-/* 計時器 */
-function startTimer(){
-  stopTimer(); startTime = Date.now(); elapsedMs = 0;
-  timeEl.textContent = '00:00.0';
-  timer = setInterval(()=>{ elapsedMs = Date.now() - startTime; timeEl.textContent = formatMs(elapsedMs); }, 100);
-}
-function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
-
-/* 洗牌（一定可解） */
-function shuffle(){
-  tiles = Array.from({length: total}, (_,i)=>i);
-  const steps = 80 * N * N;
-  for(let i=0;i<steps;i++){
-    const e = tiles.indexOf(emptyGoal);
-    const {x,y} = p2xy(e);
-    const ops = [];
-    if(x>0) ops.push(xy2p(x-1,y));
-    if(x<N-1) ops.push(xy2p(x+1,y));
-    if(y>0) ops.push(xy2p(x,y-1));
-    if(y<N-1) ops.push(xy2p(x,y+1));
-    const s = ops[Math.floor(Math.random()*ops.length)];
-    [tiles[e], tiles[s]] = [tiles[s], tiles[e]];
-  }
-  moves = 0; movesEl.textContent = moves;
-  startTimer(); winEl.classList.remove('show');
-  draw(); haptic('shuffle');
-
-  run.startedFromShuffle = true;
-  run.usedRestore = false;
-  run.seed = Date.now();
-  if (flagEl) flagEl.textContent = '（本局可計入紀錄）';
-}
-
-/* 棋盤格線 */
-function updateGridlines(){
-  if(N===2){
-    gridlines.style.background =
-      'linear-gradient(#ffffff26,#ffffff26) 0 50%/100% 1px no-repeat,'+
-      'linear-gradient(90deg,#ffffff26,#ffffff26) 50% 0/1px 100% no-repeat';
-  }else if(N===3){
-    gridlines.style.background =
-      'linear-gradient(#ffffff26,#ffffff26) 0 33.333%/100% 1px no-repeat,'+
-      'linear-gradient(#ffffff26,#ffffff26) 0 66.666%/100% 1px no-repeat,'+
-      'linear-gradient(90deg,#ffffff26,#ffffff26) 33.333% 0/1px 100% no-repeat,'+
-      'linear-gradient(90deg,#ffffff26,#ffffff26) 66.666% 0/1px 100% no-repeat';
-  }else{
-    gridlines.style.background =
-      'linear-gradient(#ffffff26,#ffffff26) 0 25%/100% 1px no-repeat,'+
-      'linear-gradient(#ffffff26,#ffffff26) 0 50%/100% 1px no-repeat,'+
-      'linear-gradient(#ffffff26,#ffffff26) 0 75%/100% 1px no-repeat,'+
-      'linear-gradient(90deg,#ffffff26,#ffffff26) 25% 0/1px 100% no-repeat,'+
-      'linear-gradient(90deg,#ffffff26,#ffffff26) 50% 0/1px 100% no-repeat,'+
-      'linear-gradient(90deg,#ffffff26,#ffffff26) 75% 0/1px 100% no-repeat';
-  }
-}
-
-/* 重要：先畫、再調比例；高度為 0 時硬設 */
-function setBoardAspect(src){
-  const w = board.clientWidth || board.offsetWidth || 320;
-  board.style.height = w + 'px';
-  board.style.aspectRatio = '1 / 1';
-  draw(); // 先畫一次
-
-  const img = new Image();
-  let fired = false;
-  img.onload = ()=>{
-    fired = true;
-    board.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
-    const ww = board.clientWidth || board.offsetWidth || w;
-    const hh = Math.round(ww * (img.naturalHeight / img.naturalWidth));
-    board.style.height = hh + 'px';
-    draw();
-  };
-  img.onerror = ()=>{ if(!fired){ fired = true; draw(); } };
-  img.src = src + '?v=4';
-  setTimeout(()=>{ if(!fired){ fired = true; draw(); } }, 800);
-}
-
-/* 繪製 */
-function draw(){
-  // 高度保底
-  if (board.clientHeight === 0) {
-    const w = board.clientWidth || board.offsetWidth || 320;
-    board.style.height = w + 'px';
-  }
-
-  board.querySelectorAll('.tile').forEach(t=>t.remove());
-  const bw = board.clientWidth || board.offsetWidth;
-  const bh = board.clientHeight || bw;
-  const cellX = bw/N, cellY = bh/N;
-  const bgSrc = turtleData[currentTurtle].img + '?v=4';
-
-  tiles.forEach((val, idx)=>{
-    const {x,y} = p2xy(idx);
-    const tile = document.createElement('div');
-    tile.className = 'tile' + (val===emptyGoal ? ' empty':'');
-    tile.style.width = `${cellX - 4}px`;
-    tile.style.height = `${cellY - 4}px`;
-    tile.style.transform = `translate(${x*cellX + 2}px, ${y*cellY + 2}px)`;
-    tile.style.backgroundImage = `url("${bgSrc}")`;
-    tile.style.backgroundSize = `${N*100}% ${N*100}%`;
-    const bx = (100/(N-1)) * p2xy(val).x;
-    const by = (100/(N-1)) * p2xy(val).y;
-    tile.style.backgroundPosition = `${bx}% ${by}%`;
-
-    tile.addEventListener('click', ()=>move(idx));
-    tile.addEventListener('touchstart', e=>{ e.preventDefault(); move(idx); }, {passive:false});
-    board.appendChild(tile);
-  });
-  updateGridlines();
-}
-
-/* 移動與勝利 */
-function move(idx){
-  const e = tiles.indexOf(emptyGoal);
-  const a = p2xy(idx), b = p2xy(e);
-  if(Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1){
-    [tiles[e], tiles[idx]] = [tiles[idx], tiles[e]];
-    moves++; movesEl.textContent = moves;
-    draw(); haptic('move');
-
-    if(tiles.every((v,i)=>v===i)){
-      stopTimer();
-      winSound.currentTime = 0; winSound.play().catch(()=>{});
-      haptic('win'); tryHapticWin();
-      showWinCardAndRecord();
-      onGameSolved(turtleData[currentTurtle].infoImg); // 解說圖（保底用主圖）
-    }
-  }
-}
-
-function showWinCardAndRecord(){
-  const eligible = run.startedFromShuffle && !run.usedRestore;
-  let broke = false;
-
-  if (eligible) {
-    const k = `${currentTurtle}__${N}`;
-    const r = records[k] || {};
-    if(r.bestMoves==null || moves < r.bestMoves){ r.bestMoves = moves; broke = true; }
-    if(r.bestTimeMs==null || elapsedMs < r.bestTimeMs){ r.bestTimeMs = elapsedMs; broke = true; }
-    records[k] = r; saveRecords(records); updateBestUI();
-  }
-
-  const data = turtleData[currentTurtle];
-  const extra = eligible
-    ? (broke ? '<br><strong>🎉 刷新歷史最佳！</strong>' : '')
-    : '<br><em style="color:#888">（此局含還原／非新局，不列入最佳紀錄）</em>';
-
-  winEl.innerHTML = `
-  <div class="card" role="dialog" aria-label="完成解說卡">
-    <h2>${data.title}</h2>
-    <p style="text-align:left">${data.desc}</p>
-    <p class="small">本局步數：${movesEl.textContent}｜用時：${timeEl.textContent}${extra}</p>
-    <button onclick="document.getElementById('win').classList.remove('show')">關閉</button>
-  </div>`;
-  winEl.classList.add('show');
-}
-
-/* 只清除「當前關卡」紀錄 */
-function clearCurrentRecord(){
-  const key = `${currentTurtle}__${N}`;
-  const store = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-  if (store[key]) {
-    delete store[key];
-    localStorage.setItem(LS_KEY, JSON.stringify(store));
-    document.getElementById('bestMoves').textContent = '—';
-    document.getElementById('bestTime').textContent = '—';
-    alert(`已清除「${currentTurtle}」${N}×${N} 的最佳紀錄`);
-  } else {
-    alert('目前這一關沒有已儲存的最佳紀錄');
-  }
-}
-window.clearCurrentRecord = clearCurrentRecord;
-
-/* 尺寸與事件 */
-function changeSize(n){
-  N = n; total = N*N; emptyGoal = total - 1;
-  document.querySelectorAll('.sizeBtn').forEach(btn=>{
-    btn.classList.toggle('active', Number(btn.dataset.n)===N);
-  });
-  setBoardAspect(turtleData[currentTurtle].img);
-  shuffle();
-  updateBestUI();
-}
-document.getElementById('shuffle').addEventListener('click', shuffle);
-document.getElementById('reset').addEventListener('click', ()=>{
-  tiles = Array.from({length: total}, (_,i)=>i);
-  moves = 0; movesEl.textContent = moves;
-  stopTimer(); elapsedMs = 0; timeEl.textContent='00:00.0';
-  draw();
-  run.startedFromShuffle = false;
-  run.usedRestore = true;
-  if (flagEl) flagEl.textContent = '（本局不計入紀錄）';
-});
-document.querySelectorAll('.sizeBtn').forEach(btn=>{
-  btn.addEventListener('click', ()=> changeSize(Number(btn.dataset.n)));
-});
-selectEl.addEventListener('change', e=>{
-  currentTurtle = e.target.value;
-  setBoardAspect(turtleData[currentTurtle].img);
-  shuffle();
-  updateBestUI();
-});
-toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
-toggleBtn.addEventListener('click', ()=>{
-  vibrateOn = !vibrateOn;
-  localStorage.setItem('turtle_vibrate', vibrateOn ? 'on' : 'off');
-  toggleBtn.textContent = vibrateOn ? "震動：開" : "震動：關";
-});
-window.addEventListener('resize', draw);
-
-/* 初始化（先設定比例→再洗牌） */
-window.addEventListener('DOMContentLoaded', ()=>{
-  updateBestUI();
-  setBoardAspect(turtleData[currentTurtle].img);
-  shuffle();
-});
-</script>
-
-<script>
-/* =====================
-   過關→解說→拍照流程
-===================== */
-function onGameSolved(explainImageUrl){
-  tryHapticWin();
-
-  const img = document.getElementById('expImg');
-  img.removeAttribute('src');
-  img.dataset.triedFallback = '0';
-  img.onerror = ()=>{
-    const fallback = turtleData[currentTurtle].img;
-    if (img.dataset.triedFallback !== '1' && fallback){
-      img.dataset.triedFallback = '1';
-      img.src = fallback;
+  tiles = [];
+  for (let i=0; i<size*size; i++) {
+    let tile = document.createElement("div");
+    tile.className = "tile";
+    if (order[i] === size*size-1) {
+      tile.style.background = "#eee";
+      emptyIndex = i;
     } else {
-      img.alt = '（本物種暫無解說圖）';
-      img.style.minHeight = '200px';
+      let row = Math.floor(order[i]/size);
+      let col = order[i]%size;
+      tile.style.backgroundImage = `url(${turtle.img})`;
+      tile.style.backgroundSize = `${size*100}px ${size*100}px`;
+      tile.style.backgroundPosition = `-${col*100}px -${row*100}px`;
+      tile.addEventListener("click", () => moveTile(i));
     }
-  };
-  img.src = (explainImageUrl || turtleData[currentTurtle].img) + '?v=4';
-
-  const exp = document.getElementById('exp');
-  exp.style.display = 'block';
-  document.body.style.overflow = 'hidden';
-
-  setTimeout(()=> document.getElementById('photoFab').classList.add('show'), 2000);
-}
-function closeExplanation(){
-  document.getElementById('exp').style.display = 'none';
-  document.body.style.overflow = '';
-  document.getElementById('photoFab').classList.remove('show');
-}
-function replayLevel(){ closeExplanation(); shuffle(); }
-</script>
-
-<script>
-/* =====================
-   拍照留念（2 模板＋QR）
-===================== */
-const FRAMES = { patrol: './巡查員.png', coast: './海巡.png' };
-const pb = { video:null, canvas:null, ctx:null, stream:null, usingUpload:false, tpl:'patrol', W:900, H:1200, frameCanvas:null, _smallJpg:null };
-
-function openPhotoBooth(){ document.getElementById('pb').style.display='block'; document.body.style.overflow='hidden'; }
-function closePhotoBooth(){ stopCam(); document.getElementById('pb').style.display='none'; document.body.style.overflow=''; }
-
-window.addEventListener('DOMContentLoaded', ()=>{
-  pb.video = document.getElementById('pbVideo');
-  pb.canvas = document.getElementById('pbCanvas');
-  pb.ctx = pb.canvas.getContext('2d', { willReadFrequently:true });
-
-  document.getElementById('pbUseCamBtn').addEventListener('click', useCamera);
-  document.getElementById('pbFile').addEventListener('change', handleFile);
-  document.getElementById('pbSnapBtn').addEventListener('click', doSnapshot);
-  document.getElementById('pbQrBtn').addEventListener('click', makeQR);
-  document.getElementById('pbShareBtn').addEventListener('click', webShare);
-
-  document.querySelectorAll('.tplBtn').forEach(btn=>{
-    btn.addEventListener('click', async e=>{
-      document.querySelectorAll('.tplBtn').forEach(b=>b.style.outline='');
-      e.currentTarget.style.outline='3px solid #39b5ff';
-      pb.tpl = e.currentTarget.dataset.tpl;
-      pb.frameCanvas = await loadFrameCanvas(pb.tpl);
-    });
-  });
-
-  loadFrameCanvas(pb.tpl).then(fc => pb.frameCanvas = fc);
-});
-
-async function useCamera(){
-  try{
-    stopCam(); pb.usingUpload=false; hideUploadPreview();
-    pb.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', aspectRatio:3/4 }});
-    pb.video.srcObject = pb.stream;
-    document.getElementById('pbSnapBtn').disabled = false;
-  }catch(err){ alert('相機無法使用，請改用「從相簿選照片」。\n' + err.message); }
-}
-function stopCam(){ if (pb.stream){ pb.stream.getTracks().forEach(t=>t.stop()); pb.stream=null; } }
-function handleFile(e){
-  const f = e.target.files?.[0]; if(!f) return;
-  stopCam(); pb.usingUpload=true;
-  const url = URL.createObjectURL(f);
-  const img = document.getElementById('pbUploadPreview');
-  img.onload = ()=> URL.revokeObjectURL(url);
-  img.src = url; img.style.display='block';
-  pb.video.style.display='none';
-  document.getElementById('pbSnapBtn').disabled = false;
-}
-function hideUploadPreview(){ const img = document.getElementById('pbUploadPreview'); img.style.display='none'; pb.video.style.display='block'; }
-
-async function loadFrameCanvas(kind){
-  const src = FRAMES[kind];
-  const img = new Image(); img.crossOrigin='anonymous'; img.src = src;
-  await img.decode().catch(()=>{});
-  const off = document.createElement('canvas'); off.width=pb.W; off.height=pb.H;
-  const octx = off.getContext('2d');
-  octx.drawImage(img,0,0,off.width,off.height);
-  try{
-    const data = octx.getImageData(0,0,off.width,off.height), px=data.data;
-    for(let i=0;i<px.length;i+=4){ const r=px[i],g=px[i+1],b=px[i+2]; if(r>245&&g>245&&b>245) px[i+3]=0; }
-    octx.putImageData(data,0,0);
-  }catch(e){}
-  return off;
-}
-
-function doSnapshot(){
-  const ctx = pb.ctx, W=pb.W, H=pb.H;
-  ctx.clearRect(0,0,W,H);
-
-  if(pb.usingUpload){
-    const img = document.getElementById('pbUploadPreview'); drawCover(ctx,img,W,H);
-  }else{
-    const v = pb.video; drawCover(ctx,v,W,H);
+    puzzleDiv.appendChild(tile);
+    tiles.push(tile);
   }
-  if(pb.frameCanvas) ctx.drawImage(pb.frameCanvas,0,0,W,H);
-
-  const dataURL = pb.canvas.toDataURL('image/png');
-  const smallJpg = canvasToScaledJpeg(pb.canvas, 720, 960, 0.7);
-
-  const a = document.getElementById('pbDl'); a.href = dataURL;
-  document.getElementById('pbDlBtn').disabled = false;
-  document.getElementById('pbShareBtn').disabled = false;
-  document.getElementById('pbQrBtn').disabled = false;
-  document.getElementById('pbQrBox').style.display = 'none';
-  pb.canvas.style.display = 'block';
-  pb._smallJpg = smallJpg;
 }
 
-function drawCover(ctx, src, W, H){
-  const iw = src.videoWidth || src.naturalWidth;
-  const ih = src.videoHeight || src.naturalHeight;
-  if(!iw || !ih){ alert('來源尚未就緒，請再試一次。'); return; }
-  const s = Math.max(W/iw, H/ih);
-  const dw = iw*s, dh = ih*s;
-  const dx = (W-dw)/2, dy = (H-dh)/2;
-  ctx.drawImage(src, dx, dy, dw, dh);
-}
-function canvasToScaledJpeg(srcCanvas, w, h, q){
-  const c = document.createElement('canvas'); c.width=w; c.height=h;
-  c.getContext('2d').drawImage(srcCanvas,0,0,w,h);
-  return c.toDataURL('image/jpeg', q);
-}
-
-function makeQR(){
-  const box = document.getElementById('pbQrBox');
-  const img = document.getElementById('pbQrImg');
-  const hint = document.getElementById('pbQrHint');
-  const dataUrl = pb._smallJpg || pb.canvas.toDataURL('image/jpeg', 0.7);
-  if (dataUrl.length > 3800){
-    box.style.display='block';
-    img.src=''; hint.textContent='圖片過大，QR 無法容納。請改用「下載」或「分享」。';
-    return;
+function moveTile(i) {
+  let neighbors = [emptyIndex-size, emptyIndex+size, emptyIndex-1, emptyIndex+1];
+  if (neighbors.includes(i)) {
+    puzzleDiv.insertBefore(tiles[i], tiles[emptyIndex]);
+    puzzleDiv.insertBefore(tiles[emptyIndex], puzzleDiv.children[i]);
+    [tiles[i], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[i]];
+    emptyIndex = i;
+    checkWin();
   }
-  const api='https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=1&data=';
-  img.src = api + encodeURIComponent(dataUrl);
-  hint.textContent='若掃描器無法開啟，請改用下載/分享。';
-  box.style.display='block';
 }
 
-async function webShare(){
-  try{
-    if (navigator.canShare){
-      const blob = await (await fetch(pb.canvas.toDataURL('image/png'))).blob();
-      const file = new File([blob], '海龜華容道_留念.png', {type:'image/png'});
-      await navigator.share({ files:[file], title:'海龜華容道', text:'我的留念照' });
-    }else{
-      alert('此裝置/瀏覽器不支援 Web Share，請改用「下載」或 QR。');
-    }
-  }catch(e){}
+function checkWin() {
+  for (let i=0; i<tiles.length-1; i++) {
+    let row = Math.floor(i/gridSize);
+    let col = i%gridSize;
+    let pos = tiles[i].style.backgroundPosition;
+    let correct = `-${col*100}px -${row*100}px`;
+    if (pos !== correct) return;
+  }
+  showInfo();
+}
+
+function showInfo() {
+  document.getElementById("turtleName").innerText = turtle.name;
+  document.getElementById("turtleDesc").innerText = turtle.desc;
+  document.getElementById("infoBox").classList.remove("hidden");
+}
+
+function closeInfo() {
+  document.getElementById("infoBox").classList.add("hidden");
+  document.getElementById("menu").style.display = "block";
+  document.getElementById("puzzle").innerHTML = "";
 }
 </script>
 </body>
