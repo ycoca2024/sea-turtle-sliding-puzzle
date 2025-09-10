@@ -8,11 +8,12 @@
     h1 { margin-top: 10px; }
     #menu button { margin: 10px; padding: 10px 20px; font-size: 16px; }
     #puzzle { display: grid; margin: 20px auto; gap: 2px; }
-    .tile { 
+    .tile {
+      width: 100px; height: 100px;
       background-size: cover; 
       background-position: center; 
       cursor: pointer; 
-      border: 1px solid #ccc; 
+      border: 1px solid #ccc;
     }
     .hidden { display: none; }
     #infoBox {
@@ -49,7 +50,7 @@ const turtles = [
   { name: "革龜", img: "leatherback.jpg", desc: "革龜是世界上最大的海龜，以水母為主要食物。" }
 ];
 
-let gridSize, puzzleDiv, emptyIndex, tiles, turtle;
+let gridSize, puzzleDiv, emptyPos, tiles, turtle;
 
 function startGame(size) {
   gridSize = size;
@@ -60,46 +61,50 @@ function startGame(size) {
   puzzleDiv.style.gridTemplateRows = `repeat(${size}, 100px)`;
 
   let order = Array.from(Array(size*size).keys());
-  order.sort(() => Math.random()-0.5); // 打亂順序
+  order.sort(() => Math.random()-0.5);
 
   tiles = [];
   for (let i=0; i<size*size; i++) {
     let tile = document.createElement("div");
     tile.className = "tile";
+    let row = Math.floor(order[i]/size);
+    let col = order[i]%size;
+    tile.dataset.correct = `${row},${col}`;
+    tile.dataset.pos = `${Math.floor(i/size)},${i%size}`;
+    tile.style.gridRowStart = Math.floor(i/size)+1;
+    tile.style.gridColumnStart = i%size+1;
+
     if (order[i] === size*size-1) {
       tile.style.background = "#eee";
-      emptyIndex = i;
+      emptyPos = tile.dataset.pos;
     } else {
-      let row = Math.floor(order[i]/size);
-      let col = order[i]%size;
       tile.style.backgroundImage = `url(${turtle.img})`;
       tile.style.backgroundSize = `${size*100}px ${size*100}px`;
       tile.style.backgroundPosition = `-${col*100}px -${row*100}px`;
-      tile.addEventListener("click", () => moveTile(i));
+      tile.addEventListener("click", () => moveTile(tile));
     }
     puzzleDiv.appendChild(tile);
     tiles.push(tile);
   }
 }
 
-function moveTile(i) {
-  let neighbors = [emptyIndex-size, emptyIndex+size, emptyIndex-1, emptyIndex+1];
-  if (neighbors.includes(i)) {
-    puzzleDiv.insertBefore(tiles[i], tiles[emptyIndex]);
-    puzzleDiv.insertBefore(tiles[emptyIndex], puzzleDiv.children[i]);
-    [tiles[i], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[i]];
-    emptyIndex = i;
+function moveTile(tile) {
+  let [tr, tc] = tile.dataset.pos.split(",").map(Number);
+  let [er, ec] = emptyPos.split(",").map(Number);
+
+  if ((Math.abs(tr-er)+Math.abs(tc-ec))===1) {
+    tile.style.gridRowStart = er+1;
+    tile.style.gridColumnStart = ec+1;
+    tile.dataset.pos = `${er},${ec}`;
+    emptyPos = `${tr},${tc}`;
     checkWin();
   }
 }
 
 function checkWin() {
-  for (let i=0; i<tiles.length-1; i++) {
-    let row = Math.floor(i/gridSize);
-    let col = i%gridSize;
-    let pos = tiles[i].style.backgroundPosition;
-    let correct = `-${col*100}px -${row*100}px`;
-    if (pos !== correct) return;
+  for (let tile of tiles) {
+    if (tile.style.background==="") continue;
+    if (tile.dataset.correct !== tile.dataset.pos) return;
   }
   showInfo();
 }
